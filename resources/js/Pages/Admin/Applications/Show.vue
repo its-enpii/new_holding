@@ -1,0 +1,26 @@
+<script setup>
+import { Head } from '@inertiajs/vue3';
+import AdminLayout from '../../../Layouts/AdminLayout.vue';
+import AppBadge from '../../../Components/AppBadge.vue';
+import AppCard from '../../../Components/AppCard.vue';
+
+defineProps({ application: { type: Object, required: true } });
+</script>
+
+<template>
+    <Head :title="application.name" />
+    <AdminLayout>
+        <div class="space-y-6">
+            <h1 class="text-3xl font-bold text-primary">{{ application.name }}</h1>
+            <AppCard>
+                <dl class="grid gap-5 sm:grid-cols-2">
+                    <div><dt class="text-sm text-on-surface-variant">Slug</dt><dd class="font-semibold text-primary">{{ application.slug }}</dd></div>
+                    <div><dt class="text-sm text-on-surface-variant">Base URL</dt><dd class="font-semibold text-primary">{{ application.base_url }}</dd></div>
+                    <div><dt class="text-sm text-on-surface-variant">Laporan keuangan</dt><dd><AppBadge :tone="application.has_financial_report ? 'success' : 'neutral'">{{ application.has_financial_report ? 'Ya' : 'Tidak' }}</AppBadge></dd></div>
+                    <div><dt class="text-sm text-on-surface-variant">Status</dt><dd><AppBadge :tone="application.is_active ? 'success' : 'neutral'">{{ application.is_active ? 'Aktif' : 'Nonaktif' }}</AppBadge></dd></div>
+                    <div class="sm:col-span-2"><dt class="text-sm text-on-surface-variant">Deskripsi</dt><dd class="font-semibold text-primary">{{ application.description || '—' }}</dd></div>
+                </dl>
+            </AppCard>
+        </div>
+    </AdminLayout>
+</template>

@@ -19,7 +19,7 @@ const tones = {
     success: 'bg-secondary-container text-secondary',
     warning: 'bg-tertiary-fixed text-tertiary',
     error: 'bg-error-container text-on-error-container',
-    primary: 'bg-primary-fixed text-primary',
+    primary: 'bg-primary-container text-on-primary-container',
     // Soft (medium-emphasis — tinted bg, strong fg)
     'success-soft': 'bg-secondary-container/40 text-secondary',
     'warning-soft': 'bg-tertiary-fixed/40 text-tertiary',

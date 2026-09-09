@@ -33,6 +33,7 @@ Komponen baru boleh dibuat jika tidak ada padanan, dipakai minimal dua kali, ata
 
 ## Aturan Token MD3
 
+- Identitas visual adalah **Indigo Ledger**: light/dark token indigo sebagai primary, teal sebagai secondary, dan amber sebagai tertiary di `resources/css/app.css`.
 - Semua warna, permukaan, border, ikon status, dan shadow wajib memakai token dari `resources/css/app.css` (`surface`, `primary`, `secondary`, `error`, `tertiary`, `outline`, `on-*`).
 - Dilarang memakai warna hard-coded (`bg-gray-500`, `text-red-600`, `bg-blue-500`, inline style hex/rgb).
 - Ikon hanya lewat `AppIcon`/`AppIconButton` dengan Material Symbols.

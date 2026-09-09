@@ -19,27 +19,27 @@ function submit() {
 
 <template>
     <Head title="Masuk — Holding" />
-    <main class="grid min-h-screen bg-surface font-sans text-on-surface lg:grid-cols-2">
-        <section class="relative hidden flex-col justify-between bg-gradient-to-br from-primary-deep via-primary to-primary-container p-12 text-on-primary lg:flex">
+    <main class="grid min-h-screen bg-surface font-sans text-on-surface lg:grid-cols-[45%_55%]">
+        <section class="relative flex flex-col gap-6 bg-gradient-primary-soft bg-brand-glow p-6 text-on-primary lg:justify-between lg:p-12">
             <div class="flex items-center gap-3">
-                <span class="grid size-12 place-items-center rounded-lg bg-primary-fixed text-primary"><AppIcon name="apartment" class="text-3xl" /></span>
+                <span class="grid size-12 place-items-center rounded-md bg-white/15 text-on-primary"><AppIcon name="account_balance" class="text-3xl" /></span>
                 <div>
                     <p class="text-xl font-semibold text-on-primary">Holding Portal</p>
-                    <p class="text-xs font-semibold uppercase tracking-[0.16em] text-primary-fixed-dim">BUMDesma Induk</p>
+                    <p class="text-xs font-semibold uppercase tracking-[0.16em] text-on-primary/80">BUMDesma Induk</p>
                 </div>
             </div>
-            <div class="space-y-6">
+            <div class="hidden space-y-6 lg:block">
                 <p class="text-3xl font-semibold leading-tight text-on-primary">Satu portal untuk mengelola aplikasi seluruh unit usaha.</p>
                 <p class="max-w-md text-on-primary/80">Kelola tenant, registry aplikasi, dan quick access secara terpusat.</p>
             </div>
-            <p class="text-sm text-primary-fixed-dim">Phase 1 Foundation</p>
+            <p class="hidden text-sm text-on-primary/70 lg:block">Indigo Ledger • Phase 1 Foundation</p>
         </section>
         <section class="flex items-center justify-center p-6 sm:p-10">
             <div class="w-full max-w-md space-y-8">
                 <div class="flex items-center justify-between">
                     <div class="lg:hidden">
-                        <p class="text-2xl font-semibold text-primary">Holding Portal</p>
-                        <p class="text-sm text-on-surface-variant">BUMDesma Induk</p>
+                        <p class="text-xl font-semibold text-primary">Masuk</p>
+                        <p class="text-sm text-on-surface-variant">Holding Portal</p>
                     </div>
                     <AppIconButton :name="current === 'dark' ? 'light_mode' : 'dark_mode'" :aria-label="current === 'dark' ? 'Gunakan tema terang' : 'Gunakan tema gelap'" @click="toggleTheme" />
                 </div>

@@ -73,14 +73,12 @@ function submit() {
                             required
                         />
 
-                        <div class="flex items-center pt-7">
-                            <AppSwitch
-                                v-model="form.is_active"
-                                label="Status Akun Aktif"
-                                :disabled="isSelf"
-                                field
-                            />
-                        </div>
+                        <AppSwitch
+                            v-model="form.is_active"
+                            label="Status Akun Aktif"
+                            :disabled="isSelf"
+                            field
+                        />
 
                         <div v-if="isSelf" class="md:col-span-2 rounded-md bg-secondary-container/20 p-3 text-xs text-on-surface-variant">
                             Catatan: Anda tidak dapat mengubah peran atau menonaktifkan akun yang sedang digunakan saat ini.

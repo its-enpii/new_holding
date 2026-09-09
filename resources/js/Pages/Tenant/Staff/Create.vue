@@ -82,7 +82,7 @@ function submit() {
                             required
                         />
 
-                        <div class="flex items-center pt-7 md:col-span-2">
+                        <div class="md:col-span-2">
                             <AppSwitch v-model="form.is_active" label="Status Akun Aktif" field />
                         </div>
                     </div>

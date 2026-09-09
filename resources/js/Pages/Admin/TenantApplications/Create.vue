@@ -107,9 +107,7 @@ function submit() {
                             :error="form.errors.expired_at"
                         />
 
-                        <div class="flex items-center pt-7">
-                            <AppSwitch v-model="form.is_active" label="Status Lisensi Aktif" field />
-                        </div>
+                        <AppSwitch v-model="form.is_active" label="Status Lisensi Aktif" field />
 
                         <div class="md:col-span-2">
                             <AppTextarea

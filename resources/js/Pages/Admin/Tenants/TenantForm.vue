@@ -37,9 +37,7 @@ function submit() {
                     <AppTextarea v-model="form.address" label="Alamat" :error="form.errors.address" />
                 </div>
                 <AppInput v-model="form.logo_path" label="Path logo" :error="form.errors.logo_path" />
-                <div class="flex items-center pt-7">
-                    <AppSwitch v-model="form.is_active" label="Status" field />
-                </div>
+                <AppSwitch v-model="form.is_active" label="Status" field />
             </div>
             <div class="mt-6 flex justify-end gap-3">
                 <AppButton variant="secondary" type="button" @click="router.visit(props.tenant ? route('admin.tenants.index') : route('admin.tenants.create'))">Batal</AppButton>

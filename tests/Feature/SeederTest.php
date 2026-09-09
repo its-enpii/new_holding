@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use App\Models\TenantApplication;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -22,5 +23,7 @@ final class SeederTest extends TestCase
         $this->assertTrue(Hash::check('password', $admin->password));
         $this->assertDatabaseHas('tenants', ['slug' => 'bumdesma-contoh']);
         $this->assertDatabaseHas('applications', ['slug' => 'sistem-contoh']);
+        $this->assertDatabaseHas('users', ['email' => 'staff@tenant.test']);
+        $this->assertSame(1, TenantApplication::query()->count());
     }
 }

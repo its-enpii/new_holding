@@ -14,11 +14,33 @@ const appName = computed(() => page.props.appName || 'Holding');
 const user = computed(() => page.props.auth?.user);
 const currentPath = computed(() => page.url);
 
-const navigation = [
-    { label: 'Dashboard', icon: 'space_dashboard', href: route('dashboard') },
-    { label: 'Tenants', icon: 'apartment', href: route('admin.tenants.index'), exact: false },
-    { label: 'Applications', icon: 'widgets', href: route('admin.applications.index'), exact: false },
-];
+const navigation = computed(() => {
+    if (user.value?.role === 'superadmin') {
+        return [
+            { label: 'Dashboard', icon: 'space_dashboard', href: route('dashboard') },
+            { label: 'Tenants', icon: 'apartment', href: route('admin.tenants.index'), exact: false },
+            { label: 'Master Aplikasi', icon: 'widgets', href: route('admin.applications.index'), exact: false },
+            { label: 'Log Aktivitas', icon: 'history', href: route('admin.activity-logs.index'), exact: false },
+        ];
+    }
+
+    if (user.value?.role === 'tenant_owner') {
+        return [
+            { label: 'Aplikasi Saya', icon: 'widgets', href: route('dashboard') },
+            { label: 'Manajemen Staff', icon: 'group', href: route('tenant.staff.index'), exact: false },
+        ];
+    }
+
+    return [
+        { label: 'Aplikasi Saya', icon: 'widgets', href: route('dashboard') },
+    ];
+});
+
+const panelTitle = computed(() => {
+    if (user.value?.role === 'superadmin') return 'Panel Superadmin';
+    if (user.value?.role === 'tenant_owner') return `Panel Owner — ${user.value?.tenant?.name || 'Unit Usaha'}`;
+    return `Portal Staff — ${user.value?.tenant?.name || 'Unit Usaha'}`;
+});
 
 function isActive(item) {
     return item.exact === false ? currentPath.value.startsWith(item.href) : currentPath.value === item.href;
@@ -50,7 +72,7 @@ function logout() {
             <div class="mx-4 flex items-center gap-3 rounded-md border-t border-white/15 bg-white/10 p-3 pt-4">
                 <span class="grid size-10 shrink-0 place-items-center rounded-full bg-white/15 text-sm font-semibold text-on-primary">{{ user?.name?.charAt(0).toUpperCase() || 'A' }}</span>
                 <div class="min-w-0 flex-1">
-                    <p class="truncate text-sm font-medium text-on-primary">{{ user?.name || 'Admin' }}</p>
+                    <p class="truncate text-sm font-medium text-on-primary">{{ user?.name || 'Pengguna' }}</p>
                     <p class="truncate text-xs text-on-primary-container">{{ user?.tenant?.name || 'Superadmin' }}</p>
                 </div>
                 <AppIconButton name="logout" aria-label="Keluar" class="text-on-primary-container hover:bg-white/10 hover:text-on-primary" @click="logout" />
@@ -59,7 +81,7 @@ function logout() {
         <header class="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-outline-variant/50 bg-gradient-to-r from-surface-container-lowest/90 to-surface-container-low/90 px-4 backdrop-blur-sm lg:ml-64 lg:px-6">
             <div class="flex items-center gap-3">
                 <AppIconButton name="menu" aria-label="Buka navigasi" class="lg:hidden" @click="mobileMenuOpen = true" />
-                <p class="text-sm font-medium text-primary">Panel Superadmin</p>
+                <p class="text-sm font-medium text-primary">{{ panelTitle }}</p>
             </div>
             <AppIconButton :name="current === 'dark' ? 'light_mode' : 'dark_mode'" :aria-label="current === 'dark' ? 'Gunakan tema terang' : 'Gunakan tema gelap'" @click="toggleTheme" />
         </header>

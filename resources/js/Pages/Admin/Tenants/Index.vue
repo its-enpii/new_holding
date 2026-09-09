@@ -65,6 +65,7 @@ function toggle(tenant) {
                         </template>
                         <template #actions="{ row }">
                             <div class="flex justify-end gap-2">
+                                <AppIconButton name="widgets" :aria-label="`Lisensi Aplikasi ${row.name}`" :href="route('admin.tenants.applications.index', row.id)" />
                                 <AppIconButton name="visibility" :aria-label="`Lihat ${row.name}`" :href="route('admin.tenants.show', row.id)" />
                                 <AppIconButton name="edit" :aria-label="`Edit ${row.name}`" :href="route('admin.tenants.edit', row.id)" />
                                 <AppIconButton :name="row.is_active ? 'toggle_off' : 'toggle_on'" :aria-label="row.is_active ? 'Nonaktifkan' : 'Aktifkan'" @click="toggle(row)" />

@@ -10,6 +10,7 @@ const props = defineProps({ tenant: { type: Object, default: null }, submitLabel
 const form = useForm({
     name: props.tenant?.name ?? '',
     slug: props.tenant?.slug ?? '',
+    domain: props.tenant?.domain ?? '',
     email: props.tenant?.email ?? '',
     phone: props.tenant?.phone ?? '',
     address: props.tenant?.address ?? '',
@@ -29,13 +30,16 @@ function submit() {
             <div class="grid gap-5 md:grid-cols-2">
                 <AppInput v-model="form.name" label="Nama" :error="form.errors.name" required />
                 <AppInput v-model="form.slug" label="Slug" :error="form.errors.slug" required />
+                <AppInput v-model="form.domain" label="Domain / Subdomain (Opsional)" placeholder="bumdesma.domain.test" :error="form.errors.domain" />
                 <AppInput v-model="form.email" label="Email" type="email" :error="form.errors.email" required />
                 <AppInput v-model="form.phone" label="Telepon" :error="form.errors.phone" />
                 <div class="md:col-span-2">
                     <AppTextarea v-model="form.address" label="Alamat" :error="form.errors.address" />
                 </div>
                 <AppInput v-model="form.logo_path" label="Path logo" :error="form.errors.logo_path" />
-                <AppSwitch v-model="form.is_active" label="Status" field />
+                <div class="flex items-center pt-7">
+                    <AppSwitch v-model="form.is_active" label="Status" field />
+                </div>
             </div>
             <div class="mt-6 flex justify-end gap-3">
                 <AppButton variant="secondary" type="button" @click="router.visit(props.tenant ? route('admin.tenants.index') : route('admin.tenants.create'))">Batal</AppButton>

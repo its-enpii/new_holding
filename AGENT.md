@@ -22,6 +22,7 @@ resources/js/Pages/**/*.vue
 - Layout: `AdminLayout` (sidebar + topbar + dialog/toast), `AuthenticatedLayout`.
 - Composables: `useCan`, `useConfirm`, `useMoney`, `useTheme`, `useToast`.
 - Halaman Phase 1: `Auth/Login`, `Dashboard`, `Tenant/Dashboard`, `Admin/Tenants/*`, `Admin/Applications/*`.
+- Halaman Phase 2: `Admin/TenantApplications/*` (Index, Create, Edit, Show), `Admin/ActivityLogs/*` (Index), `Tenant/Staff/*` (Index, Create, Edit).
 
 ### Langkah 2 — Pakai ulang komponen
 

@@ -10,7 +10,7 @@ defineProps({ application: { type: Object, required: true } });
     <Head title="Edit Aplikasi" />
     <AdminLayout>
         <div class="space-y-6">
-            <h1 class="text-3xl font-bold text-primary">Edit Aplikasi</h1>
+            <h1 class="text-3xl font-semibold text-primary">Edit Aplikasi</h1>
             <ApplicationForm :application="application" />
         </div>
     </AdminLayout>

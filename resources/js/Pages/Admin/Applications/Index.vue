@@ -42,7 +42,7 @@ function toggle(application) {
         <div class="space-y-6">
             <div class="flex flex-wrap items-center justify-between gap-4">
                 <header>
-                    <h1 class="text-3xl font-bold text-primary">Applications</h1>
+                    <h1 class="text-3xl font-semibold text-primary">Applications</h1>
                     <p class="mt-2 text-on-surface-variant">Registry aplikasi subsidiary.</p>
                 </header>
                 <AppIconButton name="add" filled aria-label="Tambah aplikasi" :href="route('admin.applications.create')" />

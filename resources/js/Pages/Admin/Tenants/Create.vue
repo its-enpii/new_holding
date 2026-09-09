@@ -8,7 +8,7 @@ import TenantForm from './TenantForm.vue';
     <Head title="Tambah Tenant" />
     <AdminLayout>
         <div class="space-y-6">
-            <h1 class="text-3xl font-bold text-primary">Tambah Tenant</h1>
+            <h1 class="text-3xl font-semibold text-primary">Tambah Tenant</h1>
             <TenantForm submit-label="Buat Tenant" />
         </div>
     </AdminLayout>

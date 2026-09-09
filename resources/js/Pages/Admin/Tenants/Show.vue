@@ -11,7 +11,7 @@ defineProps({ tenant: { type: Object, required: true } });
     <Head :title="tenant.name" />
     <AdminLayout>
         <div class="space-y-6">
-            <h1 class="text-3xl font-bold text-primary">{{ tenant.name }}</h1>
+            <h1 class="text-3xl font-semibold text-primary">{{ tenant.name }}</h1>
             <AppCard>
                 <dl class="grid gap-5 sm:grid-cols-2">
                     <div><dt class="text-sm text-on-surface-variant">Slug</dt><dd class="font-semibold text-primary">{{ tenant.slug }}</dd></div>

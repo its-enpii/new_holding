@@ -12,7 +12,7 @@ defineProps({ tenant: { type: Object, required: true } });
     <AdminLayout>
         <div class="space-y-6">
             <header>
-                <h1 class="text-3xl font-bold text-primary">Aplikasi saya</h1>
+                <h1 class="text-3xl font-semibold text-primary">Aplikasi saya</h1>
                 <p class="mt-2 text-on-surface-variant">{{ tenant.name }}</p>
             </header>
             <AppCard>

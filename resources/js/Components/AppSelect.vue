@@ -20,13 +20,13 @@ const selectId = props.id || useId();
 
 <template>
     <div class="space-y-2">
-        <label v-if="!hideLabel" :for="selectId" class="ml-1 block text-sm font-bold uppercase tracking-wider text-primary">{{ label }}</label>
+        <label v-if="!hideLabel" :for="selectId" class="ml-1 block text-sm font-semibold uppercase tracking-wider text-primary">{{ label }}</label>
         <label v-else :for="selectId" class="sr-only">{{ label }}</label>
         <div class="relative">
             <select
                 :id="selectId"
                 v-model="model"
-                class="h-14 w-full appearance-none rounded-xl border bg-surface-container-lowest px-4 pr-12 text-primary transition focus:border-primary-container focus:ring-2 focus:ring-primary-container/10 focus:outline-none"
+                class="h-14 w-full appearance-none rounded-md border bg-surface-container-lowest px-4 pr-12 text-primary transition focus:border-primary-container focus:ring-2 focus:ring-primary-container/10 focus:outline-none"
                 :class="error ? 'border-error' : 'border-outline-variant'"
                 :disabled="disabled"
                 :aria-invalid="Boolean(error)"

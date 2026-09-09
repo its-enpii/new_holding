@@ -56,13 +56,13 @@ onBeforeUnmount(() => {
                 <div
                     v-if="toastState.visible"
                     role="status"
-                    class="pointer-events-auto flex max-w-md items-center gap-3.5 rounded-2xl border border-outline-variant/60 bg-surface-container-lowest px-4 py-3.5 shadow-xl shadow-surface-container-highest/30 ring-1 ring-black/5 transition-all duration-200 dark:ring-white/10"
+                    class="pointer-events-auto flex max-w-md items-center gap-3.5 rounded-lg border border-outline-variant/60 bg-surface-container-lowest px-4 py-3.5 shadow-xl shadow-surface-container-highest/30 ring-1 ring-black/5 transition-all duration-200 dark:ring-white/10"
                     @mouseenter="pause"
                     @mouseleave="resume"
                 >
                     <!-- Left Icon Badge -->
                     <div
-                        class="grid size-9 shrink-0 place-items-center rounded-xl border"
+                        class="grid size-9 shrink-0 place-items-center rounded-md border"
                         :class="toneStyles.iconBg"
                     >
                         <AppIcon :name="toneStyles.icon" class="text-xl" />
@@ -72,7 +72,7 @@ onBeforeUnmount(() => {
                     <div class="min-w-0 flex-1">
                         <p
                             v-if="toastState.title"
-                            class="mb-0.5 text-xs font-bold uppercase tracking-wider text-on-surface-variant"
+                            class="mb-0.5 text-xs font-semibold uppercase tracking-wider text-on-surface-variant"
                         >
                             {{ toastState.title }}
                         </p>

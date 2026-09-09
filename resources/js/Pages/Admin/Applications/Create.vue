@@ -8,7 +8,7 @@ import ApplicationForm from './ApplicationForm.vue';
     <Head title="Tambah Aplikasi" />
     <AdminLayout>
         <div class="space-y-6">
-            <h1 class="text-3xl font-bold text-primary">Tambah Aplikasi</h1>
+            <h1 class="text-3xl font-semibold text-primary">Tambah Aplikasi</h1>
             <ApplicationForm submit-label="Buat Aplikasi" />
         </div>
     </AdminLayout>

@@ -33,10 +33,10 @@ const switchId = props.id || useId();
 
     <!-- Form-field layout (grid-aligned with AppInput / SmartSelect) -->
     <div v-else-if="field" class="min-w-0 space-y-2">
-        <label v-if="label" :for="switchId" class="ml-1 block text-sm font-bold uppercase tracking-wider text-primary">{{ label }}</label>
+        <label v-if="label" :for="switchId" class="ml-1 block text-sm font-semibold uppercase tracking-wider text-primary">{{ label }}</label>
         <label
             :for="switchId"
-            class="flex h-14 w-full cursor-pointer items-center justify-between gap-4 rounded-xl border border-outline-variant bg-surface-container-lowest px-4 transition-all duration-150 active:scale-[0.99] focus-within:border-primary-container focus-within:ring-2 focus-within:ring-primary-container/10"
+            class="flex h-14 w-full cursor-pointer items-center justify-between gap-4 rounded-md border border-outline-variant bg-surface-container-lowest px-4 transition-all duration-150 active:scale-[0.99] focus-within:border-primary-container focus-within:ring-2 focus-within:ring-primary-container/10"
             :class="disabled && 'cursor-not-allowed opacity-60 active:scale-100'"
         >
             <span class="flex min-w-0 items-center gap-3">
@@ -55,7 +55,7 @@ const switchId = props.id || useId();
     <label
         v-else
         :for="switchId"
-        class="flex min-h-14 cursor-pointer items-center justify-between gap-4 rounded-xl border border-outline-variant bg-surface-container-lowest px-4 py-3 transition-all duration-150 active:scale-[0.99] focus-within:border-primary-container focus-within:ring-2 focus-within:ring-primary-container/10"
+        class="flex min-h-14 cursor-pointer items-center justify-between gap-4 rounded-md border border-outline-variant bg-surface-container-lowest px-4 py-3 transition-all duration-150 active:scale-[0.99] focus-within:border-primary-container focus-within:ring-2 focus-within:ring-primary-container/10"
         :class="disabled && 'cursor-not-allowed opacity-60 active:scale-100'"
     >
         <span class="flex items-center gap-3">

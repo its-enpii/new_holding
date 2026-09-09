@@ -73,9 +73,9 @@ onBeforeUnmount(() => {
     <Teleport to="body">
         <Transition name="modal">
             <div v-if="model" class="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden bg-primary/45 p-4 backdrop-blur-xs" @click.self="close">
-                <section ref="panel" role="dialog" aria-modal="true" :aria-labelledby="titleId" tabindex="-1" :class="['flex max-h-[calc(100vh-2rem)] w-full flex-col rounded-2xl bg-surface-container-lowest shadow-2xl focus:outline-none', sizeClass[size] ?? sizeClass.md]" @keydown="onKeydown">
+                <section ref="panel" role="dialog" aria-modal="true" :aria-labelledby="titleId" tabindex="-1" :class="['flex max-h-[calc(100vh-2rem)] w-full flex-col rounded-lg bg-surface-container-lowest shadow-2xl focus:outline-none', sizeClass[size] ?? sizeClass.md]" @keydown="onKeydown">
                     <header class="flex shrink-0 items-center justify-between gap-4 border-b border-outline-variant px-5 py-4 sm:px-6">
-                        <h2 :id="titleId" class="text-lg font-bold text-primary">{{ title }}</h2>
+                        <h2 :id="titleId" class="text-lg font-semibold text-primary">{{ title }}</h2>
                         <button v-if="closeable" type="button" class="grid size-10 shrink-0 place-items-center rounded-full text-on-surface-variant transition-all duration-150 hover:bg-surface-container-low hover:text-primary active:scale-90 focus:outline-none focus:ring-2 focus:ring-primary-container/30" aria-label="Tutup modal" @click="close"><AppIcon name="close" /></button>
                     </header>
                     <div class="flex-1 overflow-y-auto p-5 sm:p-6"><slot /></div>

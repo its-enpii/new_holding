@@ -55,12 +55,12 @@ function onChange(event) {
 <template>
     <!-- field variant: parity with AppInput / AppSwitch field mode -->
     <div v-if="variant === 'field'" class="min-w-0 space-y-2">
-        <label :for="id" class="ml-1 block text-sm font-bold uppercase tracking-wider text-primary">
+        <label :for="id" class="ml-1 block text-sm font-semibold uppercase tracking-wider text-primary">
             {{ label }}<span v-if="description" class="ml-2 text-xs font-normal text-on-surface-variant">— {{ description }}</span>
         </label>
         <label
             :for="id"
-            class="flex h-14 w-full cursor-pointer items-center gap-3 rounded-xl border border-outline-variant bg-surface-container-lowest px-4 transition-all duration-150 active:scale-[0.99] focus-within:border-primary-container focus-within:ring-2 focus-within:ring-primary-container/10"
+            class="flex h-14 w-full cursor-pointer items-center gap-3 rounded-md border border-outline-variant bg-surface-container-lowest px-4 transition-all duration-150 active:scale-[0.99] focus-within:border-primary-container focus-within:ring-2 focus-within:ring-primary-container/10"
             :class="disabled && 'cursor-not-allowed opacity-60 active:scale-100'"
         >
             <input

@@ -10,7 +10,7 @@ defineProps({ tenant: { type: Object, required: true } });
     <Head title="Edit Tenant" />
     <AdminLayout>
         <div class="space-y-6">
-            <h1 class="text-3xl font-bold text-primary">Edit Tenant</h1>
+            <h1 class="text-3xl font-semibold text-primary">Edit Tenant</h1>
             <TenantForm :tenant="tenant" />
         </div>
     </AdminLayout>

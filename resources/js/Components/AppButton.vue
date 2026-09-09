@@ -19,7 +19,7 @@ defineProps({
 });
 
 const variants = {
-    primary: 'bg-primary text-on-primary hover:bg-primary-container disabled:bg-primary/60',
+    primary: 'bg-gradient-to-r from-primary via-primary-deep to-primary-container text-on-primary shadow-sm hover:opacity-95 disabled:opacity-60',
     success: 'bg-secondary text-on-secondary hover:brightness-110 disabled:bg-secondary/60',
     secondary: 'border border-outline-variant bg-surface-container-lowest text-primary hover:bg-surface-container-low',
     outline: 'border border-primary bg-transparent text-primary hover:bg-primary-container/20 disabled:border-primary/40',
@@ -42,7 +42,7 @@ const element = computed(() => (attrs.href || attrs.to ? 'a' : 'button'));
         :is="element"
         :type="type"
         :disabled="disabled || loading"
-        class="inline-flex items-center justify-center gap-2 rounded-xl font-bold transition-all duration-150 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface-container-lowest disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100"
+        class="inline-flex items-center justify-center gap-2 rounded-md font-medium transition-all duration-150 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface-container-lowest disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100"
         :class="[variants[variant] || variants.primary, iconOnly ? 'aspect-square p-0' : sizes[size] || sizes.default]"
         :aria-busy="loading"
         :aria-label="ariaLabel || undefined"

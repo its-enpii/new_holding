@@ -29,7 +29,7 @@ const positionClasses = {
             <button
                 type="button"
                 tabindex="-1"
-                class="flex h-4 w-4 cursor-help items-center justify-center rounded-full bg-surface-container text-[10px] font-bold text-outline transition-all duration-150 hover:bg-surface-container-high hover:text-primary active:scale-90 focus:outline-none"
+                class="flex h-4 w-4 cursor-help items-center justify-center rounded-full bg-surface-container text-[10px] font-semibold text-outline transition-all duration-150 hover:bg-surface-container-high hover:text-primary active:scale-90 focus:outline-none"
                 aria-haspopup="true"
                 :aria-label="text"
             >

@@ -30,5 +30,5 @@ const tones = {
 </script>
 
 <template>
-    <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-bold" :class="tones[tone] || tones.neutral"><slot /></span>
+    <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold" :class="tones[tone] || tones.neutral"><slot /></span>
 </template>

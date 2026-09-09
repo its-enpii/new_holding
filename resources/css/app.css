@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Material+Symbols+Outlined:opsz,wght,FILL@20..48,100..700,0..1');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Material+Symbols+Outlined:opsz,wght,FILL@20..48,100..700,0..1');
 @import "tailwindcss";
 
 @source "../views/**/*.blade.php";
@@ -30,6 +30,9 @@
     --color-on-primary-container-soft: rgb(129 168 215 / 16%);
     --color-primary-fixed: #d1e4ff;
     --color-primary-fixed-dim: #a2cafa;
+    --color-primary-gradient-from: var(--color-primary-deep);
+    --color-primary-gradient-via: var(--color-primary);
+    --color-primary-gradient-to: var(--color-primary-container);
     --color-secondary: #006d3d;
     --color-secondary-container: #97f3b5;
     --color-on-secondary: #ffffff;
@@ -43,6 +46,10 @@
     --color-tertiary-fixed: #ffddb5;
     --color-tertiary-fixed-dim: #ffb956;
     --color-shadow: rgb(11 61 102 / 5%);
+}
+
+:root {
+    color-scheme: light;
 }
 
 /* ── Theme palettes (override semantic tokens) ── */
@@ -67,6 +74,9 @@
     --color-on-primary-container-soft: rgb(209 228 255 / 16%);
     --color-primary-fixed: #d1e4ff;
     --color-primary-fixed-dim: #a2cafa;
+    --color-primary-gradient-from: var(--color-primary-container);
+    --color-primary-gradient-via: var(--color-surface-container-lowest);
+    --color-primary-gradient-to: var(--color-surface-container-low);
     --color-secondary: #97f3b5;
     --color-secondary-container: #005328;
     --color-on-secondary: #006d3d;
@@ -82,6 +92,24 @@
     --color-shadow: rgb(0 0 0 / 32%);
 }
 
+[data-theme='dark'] body {
+    background-color: var(--color-surface);
+    color: var(--color-on-surface);
+}
+
 @utility card-shadow {
     box-shadow: 0 4px 20px var(--color-shadow);
+}
+
+@utility bg-gradient-primary-soft {
+    background-image: linear-gradient(
+        to bottom right,
+        var(--color-primary-gradient-from),
+        var(--color-primary-gradient-via) 52%,
+        var(--color-primary-gradient-to)
+    );
+}
+
+@utility bg-gradient-surface-soft {
+    background-image: linear-gradient(to bottom right, var(--color-surface-container-lowest), var(--color-surface-container-low));
 }

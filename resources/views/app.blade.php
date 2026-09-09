@@ -18,7 +18,7 @@
     @vite('resources/js/app.js')
     @inertiaHead
 </head>
-<body>
+<body class="min-h-screen bg-surface font-sans text-on-surface antialiased transition-colors duration-200">
     @inertia
 </body>
 </html>

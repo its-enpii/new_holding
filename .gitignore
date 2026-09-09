@@ -27,3 +27,9 @@ _ide_helper.php
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Tooling artefacts
+/.agents/
+/.claude/
+/.mcp.json
+/boost.json

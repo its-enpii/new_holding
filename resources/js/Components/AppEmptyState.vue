@@ -9,7 +9,7 @@ defineProps({
 </script>
 
 <template>
-    <div class="grid min-h-40 place-items-center rounded-xl bg-surface-container-low p-6 text-center text-on-surface-variant">
+    <div class="grid min-h-40 place-items-center rounded-lg bg-surface-container-low p-6 text-center text-on-surface-variant">
         <div>
             <AppIcon :name="icon" class="text-4xl" />
             <p class="mt-2 font-semibold">{{ title }}</p>

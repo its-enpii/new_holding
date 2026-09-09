@@ -12,26 +12,26 @@ defineProps({ stats: { type: Object, required: true } });
     <AdminLayout>
         <div class="space-y-6">
             <header>
-                <h1 class="text-3xl font-bold text-primary">Dashboard Superadmin</h1>
+                <h1 class="text-3xl font-semibold text-primary">Dashboard Superadmin</h1>
                 <p class="mt-2 text-on-surface-variant">Ringkasan tenant, aplikasi, dan pengguna.</p>
             </header>
             <div class="grid gap-4 sm:grid-cols-3">
-                <AppCard>
+                <AppCard class="border border-outline-variant/60 bg-gradient-to-br from-surface-container-lowest to-surface-container-low shadow-sm">
                     <div class="flex items-center gap-4">
                         <AppIcon name="apartment" tone="primary" container-size="12" />
-                        <div><p class="text-sm text-on-surface-variant">Tenant aktif</p><p class="text-3xl font-black text-primary">{{ stats.activeTenants }}</p></div>
+                        <div><p class="text-sm text-on-surface-variant">Tenant aktif</p><p class="text-3xl font-semibold text-primary">{{ stats.activeTenants }}</p></div>
                     </div>
                 </AppCard>
-                <AppCard>
+                <AppCard class="border border-outline-variant/60 bg-gradient-to-br from-surface-container-lowest to-surface-container-low shadow-sm">
                     <div class="flex items-center gap-4">
                         <AppIcon name="widgets" tone="secondary" container-size="12" />
-                        <div><p class="text-sm text-on-surface-variant">Aplikasi</p><p class="text-3xl font-black text-primary">{{ stats.applications }}</p></div>
+                        <div><p class="text-sm text-on-surface-variant">Aplikasi</p><p class="text-3xl font-semibold text-primary">{{ stats.applications }}</p></div>
                     </div>
                 </AppCard>
-                <AppCard>
+                <AppCard class="border border-outline-variant/60 bg-gradient-to-br from-surface-container-lowest to-surface-container-low shadow-sm">
                     <div class="flex items-center gap-4">
                         <AppIcon name="group" tone="info" container-size="12" />
-                        <div><p class="text-sm text-on-surface-variant">Pengguna</p><p class="text-3xl font-black text-primary">{{ stats.users }}</p></div>
+                        <div><p class="text-sm text-on-surface-variant">Pengguna</p><p class="text-3xl font-semibold text-primary">{{ stats.users }}</p></div>
                     </div>
                 </AppCard>
             </div>

@@ -42,7 +42,7 @@ function toggle(tenant) {
         <div class="space-y-6">
             <div class="flex flex-wrap items-center justify-between gap-4">
                 <header>
-                    <h1 class="text-3xl font-bold text-primary">Tenants</h1>
+                    <h1 class="text-3xl font-semibold text-primary">Tenants</h1>
                     <p class="mt-2 text-on-surface-variant">Kelola unit usaha terdaftar.</p>
                 </header>
                 <AppIconButton name="add" filled aria-label="Tambah tenant" :href="route('admin.tenants.create')" />

@@ -26,7 +26,7 @@ const inputId = props.id || generatedId;
 <template>
     <div class="space-y-2">
         <div v-if="!hideLabel" class="flex items-center gap-1.5 ml-1">
-            <label :for="inputId" class="block text-sm font-bold uppercase tracking-wider text-primary">{{ label }}</label>
+            <label :for="inputId" class="block text-sm font-semibold uppercase tracking-wider text-primary">{{ label }}</label>
             <AppTooltip v-if="tooltip" :id="`${inputId}-tooltip`" :text="tooltip" />
         </div>
         <label v-else :for="inputId" class="sr-only">{{ label }}</label>
@@ -44,7 +44,7 @@ const inputId = props.id || generatedId;
                 ].filter(Boolean).join(' ') || undefined"
                 :readonly="readonly"
                 :placeholder="readonly ? undefined : (placeholder ?? `Masukkan ${label.toLowerCase()}`)"
-                class="h-14 w-full rounded-xl border bg-surface-container-lowest px-4 text-primary transition placeholder:text-outline focus:border-primary-container focus:ring-2 focus:ring-primary-container/10 focus:outline-none read-only:cursor-default read-only:bg-surface-container-low read-only:text-on-surface-variant"
+                class="h-14 w-full rounded-md border bg-surface-container-lowest px-4 text-primary transition placeholder:text-outline focus:border-primary-container focus:ring-2 focus:ring-primary-container/10 focus:outline-none read-only:cursor-default read-only:bg-surface-container-low read-only:text-on-surface-variant"
                 :class="[icon && 'pl-12', $slots.trailing && 'pr-14', error ? 'border-error' : 'border-outline-variant']"
                 v-bind="$attrs"
             >

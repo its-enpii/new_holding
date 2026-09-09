@@ -238,7 +238,7 @@ watch(() => props.modelValue, (value) => {
 
 <template>
     <div class="space-y-2" :data-smart-select="selectId">
-        <label :for="selectId" :class="hideLabel ? 'sr-only' : 'ml-1 block text-sm font-bold uppercase tracking-wider text-primary'">{{ label }}</label>
+        <label :for="selectId" :class="hideLabel ? 'sr-only' : 'ml-1 block text-sm font-semibold uppercase tracking-wider text-primary'">{{ label }}</label>
         <div class="relative">
             <button
                 :id="selectId"
@@ -250,7 +250,7 @@ watch(() => props.modelValue, (value) => {
                 :aria-invalid="Boolean(error)"
                 :aria-required="required"
                 :disabled="disabled"
-                class="flex h-14 w-full items-center justify-between rounded-xl border bg-surface-container-lowest px-4 pr-16 text-left text-primary transition-all duration-150 active:scale-[0.99] focus:border-primary-container focus:ring-2 focus:ring-primary-container/10 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100"
+                class="flex h-14 w-full items-center justify-between rounded-md border bg-surface-container-lowest px-4 pr-16 text-left text-primary transition-all duration-150 active:scale-[0.99] focus:border-primary-container focus:ring-2 focus:ring-primary-container/10 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100"
                 :class="error ? 'border-error' : 'border-outline-variant'"
                 v-bind="$attrs"
                 @click="open ? closeMenu() : openMenu()"
@@ -282,7 +282,7 @@ watch(() => props.modelValue, (value) => {
                         :id="`${selectId}-listbox`"
                         ref="listbox"
                         role="listbox"
-                        class="flex flex-col overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest p-2 shadow-xl"
+                        class="flex flex-col overflow-hidden rounded-lg border border-outline-variant bg-surface-container-lowest p-2 shadow-xl"
                         :class="placeAbove ? 'origin-bottom' : 'origin-top'"
                         :style="menuStyle"
                         :data-smart-select="selectId"
@@ -298,7 +298,7 @@ watch(() => props.modelValue, (value) => {
                                 <template v-for="(row, rowIndex) in visibleRows" :key="row.kind === 'header' ? `h-${row.label}-${rowIndex}` : String(row.option[valueKey])">
                                     <div
                                         v-if="row.kind === 'header'"
-                                        class="px-3 pb-1 pt-2 text-[10px] font-bold uppercase tracking-wider text-on-surface-variant first:pt-1"
+                                        class="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wider text-on-surface-variant first:pt-1"
                                         role="presentation"
                                     >
                                         {{ row.label }}

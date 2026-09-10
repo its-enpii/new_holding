@@ -63,6 +63,7 @@ function accessApp(app) {
                             </div>
                             <div>
                                 <AppBadge v-if="app.is_expired" tone="danger">Kadaluarsa</AppBadge>
+                                <AppBadge v-else-if="app.is_expiring_soon" tone="warning">Segera Kadaluarsa</AppBadge>
                                 <AppBadge v-else-if="!app.is_active" tone="neutral">Nonaktif</AppBadge>
                                 <AppBadge v-else tone="success">Aktif</AppBadge>
                             </div>

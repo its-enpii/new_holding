@@ -22,8 +22,9 @@ Route::middleware('guest')->group(function (): void {
         ->name('login.attempt');
 });
 
-Route::middleware('auth')->group(function (): void {
-    Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+Route::middleware('auth')->post('/logout', [AuthController::class, 'logout'])->name('logout');
+
+Route::middleware(['auth', 'throttle:web-app'])->group(function (): void {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // Tenant App Quick Access (owner and staff)
@@ -32,7 +33,9 @@ Route::middleware('auth')->group(function (): void {
         Route::get('/tenant/reports/view', [ReportController::class, 'show'])->name('tenant.reports.show');
         Route::get('/tenant/reports/export/csv', [ReportController::class, 'exportCsv'])->name('tenant.reports.export.csv');
         Route::get('/tenant/reports/export/pdf', [ReportController::class, 'exportPdf'])->name('tenant.reports.export.pdf');
-        Route::post('/app/{tenantApplication}/access', [AppAccessController::class, 'access'])->name('app.access');
+        Route::post('/app/{tenantApplication}/access', [AppAccessController::class, 'access'])
+            ->middleware('throttle:app.access')
+            ->name('app.access');
     });
 
     // Tenant Staff Management (owner only)

@@ -12,6 +12,7 @@ const messages = computed(() => ({
     403: { title: 'Akses ditolak', description: 'Anda tidak memiliki izin untuk membuka halaman ini.' },
     404: { title: 'Halaman tidak ditemukan', description: 'Tautan mungkin sudah tidak tersedia atau salah ketik.' },
     419: { title: 'Sesi berakhir', description: 'Silakan coba lagi dari halaman sebelumnya.' },
+    429: { title: 'Terlalu banyak permintaan', description: 'Coba lagi setelah beberapa saat.' },
     500: { title: 'Terjadi kesalahan server', description: 'Sistem gagal memproses permintaan Anda. Coba beberapa saat lagi.' },
 }[props.status] ?? { title: 'Terjadi kesalahan', description: 'Sistem gagal memproses permintaan Anda.' }));
 

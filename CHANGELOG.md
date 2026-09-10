@@ -53,6 +53,10 @@ Semua perubahan penting pada proyek **new_holding** dicatat dalam berkas ini. Fo
   - Kit Komponen Atomik & Domain MD3 (`resources/js/Components/`).
 
 ### Changed
+- **Phase 4 Polish (`new_holding`)**:
+  - Added `licenses:check-expiry` console command with daily 07:00 scheduler, database notifications for superadmin, and once-per-expiry / once-per-day dedupe.
+  - Added license alert section to superadmin dashboard and expiring-soon badge on tenant application cards.
+  - Added `web-app` and `app.access` rate limiters, branded 429 page, standard notifications table, and focused feature coverage.
 - **Form Control UI (`new_holding`)**:
   - Tinggi default `AppButton` diseragamkan menjadi `min-h-14` mengikuti field form; varian `compact` tetap untuk konteks inline.
   - Konvensi tinggi form control dan inventory `AppDatePicker` didokumentasikan.

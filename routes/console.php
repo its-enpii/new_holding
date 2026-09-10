@@ -1,8 +1,6 @@
 <?php
 
-use Illuminate\Foundation\Inspiring;
-use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Schedule;
 
-Artisan::command('inspire', function () {
-    $this->comment(Inspiring::quote());
-})->purpose('Display an inspiring quote');
+// Periksa lisensi yang mendekati kadaluarsa atau sudah kadaluarsa setiap pagi.
+Schedule::command('licenses:check-expiry')->dailyAt('07:00');

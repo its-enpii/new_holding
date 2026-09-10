@@ -5,6 +5,16 @@ Semua perubahan penting pada proyek **new_holding** dicatat dalam berkas ini. Fo
 ## [Unreleased]
 
 ### Added
+- **Phase 3 — Unified Report (`new_holding`)**:
+  - `report_caches` untuk payload laporan subsidiary dengan kunci unik `tenant_application_id + report_type + period`, TTL 30 menit, dan `fetched_at`.
+  - `App\Services\SubsidiaryReportService` untuk fetch kontrak API `new_sidbm`, cache valid/force, matching composite key `code||name`, dan pemetaan state `ok|cache|offline|auth_error`.
+  - Custom exception `SubsidiaryAuthException` dan `SubsidiaryUnavailableException`.
+  - Halaman laporan tenant dan preview superadmin dengan filter jenis/tahun/periode, pemilihan aplikasi, tabel hierarki, badge state, muat ulang paksa, serta export CSV (`;`, BOM UTF-8, format angka id) dan PDF A4 landscape.
+  - Activity log `view_report` dan `export_report` dengan metadata laporan.
+  - Proteksi isolasi tenant serta penyaringan aplikasi nonaktif, kedaluwarsa, dan non-finansial.
+  - Komponen domain `ReportComparativeTable` dengan header sticky, indentasi level, sub-kolom Prior/Ini/YTD untuk income statement, dan nominal via `useMoney().format()`.
+  - Navigasi sidebar "Laporan" untuk tenant dan superadmin.
+  - 12 test feature baru (total 41 tests) untuk cache, matching, offline/auth state, otorisasi, filter, export, dan akses admin.
 - **Phase 2 — App Registry & Access (`new_holding`)**:
   - Database schema & migrations:
     - `tenant_applications`: pivot relasi tenant-application (`tenant_id`, `application_id`, `label`, `instance_url`, `api_secret` [40 char unique], `is_active`, `activated_at`, `expired_at`, `notes`, unique key [`tenant_id`, `application_id`]).

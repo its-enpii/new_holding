@@ -20,6 +20,7 @@ const navigation = computed(() => {
             { label: 'Dashboard', icon: 'space_dashboard', href: route('dashboard') },
             { label: 'Tenants', icon: 'apartment', href: route('admin.tenants.index'), exact: false },
             { label: 'Master Aplikasi', icon: 'widgets', href: route('admin.applications.index'), exact: false },
+            { label: 'Laporan', icon: 'monitoring', href: route('admin.reports.index'), exact: false },
             { label: 'Log Aktivitas', icon: 'history', href: route('admin.activity-logs.index'), exact: false },
         ];
     }
@@ -27,12 +28,14 @@ const navigation = computed(() => {
     if (user.value?.role === 'tenant_owner') {
         return [
             { label: 'Aplikasi Saya', icon: 'widgets', href: route('dashboard') },
+            { label: 'Laporan', icon: 'monitoring', href: route('tenant.reports.index'), exact: false },
             { label: 'Manajemen Staff', icon: 'group', href: route('tenant.staff.index'), exact: false },
         ];
     }
 
     return [
         { label: 'Aplikasi Saya', icon: 'widgets', href: route('dashboard') },
+        { label: 'Laporan', icon: 'monitoring', href: route('tenant.reports.index'), exact: false },
     ];
 });
 

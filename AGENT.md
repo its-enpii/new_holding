@@ -18,11 +18,12 @@ resources/js/Pages/**/*.vue
 **Inventory aktif:**
 
 - Atomik `App*`: `AppBadge`, `AppButton`, `AppCard`, `AppCheckbox`, `AppConfirmDialog`, `AppEmptyState`, `AppIcon`, `AppIconButton`, `AppInput`, `AppModal`, `AppSelect`, `AppSwitch`, `AppTextarea`, `AppToast`, `AppTooltip`.
-- Data & select: `SmartDataTable`, `SmartSelect`.
+- Data & select: `SmartDataTable`, `SmartSelect`, `ReportComparativeTable`.
 - Layout: `AdminLayout` (sidebar + topbar + dialog/toast), `AuthenticatedLayout`.
 - Composables: `useCan`, `useConfirm`, `useMoney`, `useTheme`, `useToast`.
 - Halaman Phase 1: `Auth/Login`, `Dashboard`, `Tenant/Dashboard`, `Admin/Tenants/*`, `Admin/Applications/*`.
 - Halaman Phase 2: `Admin/TenantApplications/*` (Index, Create, Edit, Show), `Admin/ActivityLogs/*` (Index), `Tenant/Staff/*` (Index, Create, Edit).
+- Halaman Phase 3: `Tenant/Reports/Index`, `Admin/Reports/Index`.
 
 ### Langkah 2 — Pakai ulang komponen
 

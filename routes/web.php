@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 use App\Http\Controllers\Admin\ActivityLogController;
 use App\Http\Controllers\Admin\ApplicationController;
+use App\Http\Controllers\Admin\ReportController as AdminReportController;
 use App\Http\Controllers\Admin\TenantApplicationController;
 use App\Http\Controllers\Admin\TenantController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Tenant\AppAccessController;
+use App\Http\Controllers\Tenant\ReportController;
 use App\Http\Controllers\Tenant\StaffController;
 use Illuminate\Support\Facades\Route;
 
@@ -26,6 +28,10 @@ Route::middleware('auth')->group(function (): void {
 
     // Tenant App Quick Access (owner and staff)
     Route::middleware('role:tenant_owner,tenant_staff')->group(function (): void {
+        Route::get('/tenant/reports', [ReportController::class, 'index'])->name('tenant.reports.index');
+        Route::get('/tenant/reports/view', [ReportController::class, 'show'])->name('tenant.reports.show');
+        Route::get('/tenant/reports/export/csv', [ReportController::class, 'exportCsv'])->name('tenant.reports.export.csv');
+        Route::get('/tenant/reports/export/pdf', [ReportController::class, 'exportPdf'])->name('tenant.reports.export.pdf');
         Route::post('/app/{tenantApplication}/access', [AppAccessController::class, 'access'])->name('app.access');
     });
 
@@ -52,5 +58,7 @@ Route::middleware('auth')->group(function (): void {
         Route::patch('/applications/{application}/toggle', [ApplicationController::class, 'toggle'])->name('applications.toggle');
 
         Route::get('/activity-logs', [ActivityLogController::class, 'index'])->name('activity-logs.index');
+        Route::get('/reports', [AdminReportController::class, 'index'])->name('reports.index');
+        Route::get('/reports/view', [AdminReportController::class, 'show'])->name('reports.show');
     });
 });

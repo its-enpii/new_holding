@@ -30,6 +30,7 @@ const columns = [
     { key: 'application', label: 'Aplikasi' },
     { key: 'label', label: 'Label Instance' },
     { key: 'instance_url', label: 'URL Instance' },
+    { key: 'connection', label: 'Koneksi', class: 'w-40' },
     { key: 'status', label: 'Status Lisensi', class: 'w-36' },
     { key: 'expired_at', label: 'Kadaluarsa' },
 ];
@@ -47,6 +48,22 @@ function getStatusTone(app) {
 function getStatusLabel(app) {
     if (isAppExpired(app)) return 'Kadaluarsa';
     return app.is_active ? 'Aktif' : 'Nonaktif';
+}
+
+function getConnectionTone(app) {
+    return {
+        connected: 'success',
+        auth_error: 'warning',
+        offline: 'error',
+    }[app.connection_status] || 'neutral';
+}
+
+function getConnectionLabel(app) {
+    return {
+        connected: 'Terhubung',
+        auth_error: 'Secret/URL salah',
+        offline: 'Tidak dapat dihubungi',
+    }[app.connection_status] || 'Belum dicek';
 }
 
 function formatDate(dateStr) {
@@ -165,6 +182,10 @@ function copyToClipboard(text) {
                             <a :href="row.instance_url" target="_blank" rel="noopener noreferrer" class="truncate text-xs font-mono text-primary underline">
                                 {{ row.instance_url }}
                             </a>
+                        </template>
+
+                        <template #cell-connection="{ row }">
+                            <AppBadge :tone="getConnectionTone(row)">{{ getConnectionLabel(row) }}</AppBadge>
                         </template>
 
                         <template #cell-status="{ row }">

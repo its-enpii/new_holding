@@ -26,6 +26,9 @@ final class TenantApplication extends Model
         'activated_at',
         'expired_at',
         'notes',
+        'connection_status',
+        'connection_latency_ms',
+        'connection_checked_at',
     ];
 
     public static function boot(): void
@@ -48,6 +51,7 @@ final class TenantApplication extends Model
             'is_active' => 'boolean',
             'activated_at' => 'datetime',
             'expired_at' => 'datetime',
+            'connection_checked_at' => 'datetime',
         ];
     }
 

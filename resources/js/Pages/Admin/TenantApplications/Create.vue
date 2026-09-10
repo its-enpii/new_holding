@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import { Head, Link, useForm, router } from '@inertiajs/vue3';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
+import AppAccordion from '../../../Components/AppAccordion.vue';
 import AppButton from '../../../Components/AppButton.vue';
 import AppCard from '../../../Components/AppCard.vue';
 import AppDatePicker from '../../../Components/AppDatePicker.vue';
@@ -85,40 +86,44 @@ function submit() {
                             />
                         </div>
 
-                        <AppInput
-                            v-model="form.label"
-                            label="Label Instance (Opsional)"
-                            placeholder="Contoh: Cabang Utama / Unit Simpan Pinjam"
-                            :error="form.errors.label"
-                        />
-
-                        <AppInput
-                            v-model="form.instance_url"
-                            label="URL Instance Aplikasi"
+                    <AppInput
+                        v-model="form.instance_url"
+                        label="URL Instance Aplikasi"
                             placeholder="https://app.tenant.test"
                             type="url"
                             :error="form.errors.instance_url"
                             required
                         />
 
-                        <AppDatePicker
-                            v-model="form.expired_at"
-                            label="Tanggal Kadaluarsa (Opsional)"
-                            :error="form.errors.expired_at"
-                        />
-
-                        <AppSwitch v-model="form.is_active" label="Status Lisensi Aktif" field />
-
-                        <div class="md:col-span-2">
-                            <AppTextarea
-                                v-model="form.notes"
-                                label="Catatan Lisensi (Opsional)"
-                                placeholder="Keterangan kontrak, PIC, atau catatan operasional"
-                                :error="form.errors.notes"
-                            />
-                        </div>
                     </div>
 
+                    <AppAccordion title="Opsi Lanjutan" subtitle="Label, kadaluarsa, catatan, dan status lisensi" icon="tune">
+                        <div class="grid gap-5 md:grid-cols-2">
+                            <AppInput
+                                v-model="form.label"
+                                label="Label Instance (Opsional)"
+                                placeholder="Contoh: Cabang Utama / Unit Simpan Pinjam"
+                                :error="form.errors.label"
+                            />
+
+                            <AppDatePicker
+                                v-model="form.expired_at"
+                                label="Tanggal Kadaluarsa (Opsional)"
+                                :error="form.errors.expired_at"
+                            />
+
+                            <div class="md:col-span-2">
+                                <AppTextarea
+                                    v-model="form.notes"
+                                    label="Catatan Lisensi (Opsional)"
+                                    placeholder="Keterangan kontrak, PIC, atau catatan operasional"
+                                    :error="form.errors.notes"
+                                />
+                            </div>
+
+                            <AppSwitch v-model="form.is_active" label="Status Lisensi Aktif" field />
+                        </div>
+                    </AppAccordion>
                     <div class="mt-6 flex justify-end gap-3">
                         <AppButton variant="secondary" type="button" :href="route('admin.tenants.applications.index', tenant.id)">
                             Batal

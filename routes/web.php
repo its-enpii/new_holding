@@ -53,6 +53,9 @@ Route::middleware(['auth', 'throttle:web-app'])->group(function (): void {
 
         Route::prefix('tenants/{tenant}')->name('tenants.')->group(function (): void {
             Route::resource('applications', TenantApplicationController::class);
+            Route::post('applications/{application}/test-connection', [TenantApplicationController::class, 'testConnection'])
+                ->middleware('throttle:6,1')
+                ->name('applications.test-connection');
             Route::post('applications/{application}/regenerate-secret', [TenantApplicationController::class, 'regenerateSecret'])->name('applications.regenerate-secret');
         });
 

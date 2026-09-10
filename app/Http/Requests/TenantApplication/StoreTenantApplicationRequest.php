@@ -10,6 +10,13 @@ use Illuminate\Validation\Rule;
 
 final class StoreTenantApplicationRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'instance_url' => rtrim(trim((string) $this->input('instance_url')), '/'),
+        ]);
+    }
+
     public function authorize(): bool
     {
         return $this->user()?->isSuperadmin() === true;

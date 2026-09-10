@@ -18,9 +18,11 @@ const props = defineProps({
 
 const page = usePage();
 const { confirm } = useConfirm();
-const { toast } = useToast();
+const { success: showSuccessToast, warning: showWarningToast, error: showErrorToast } = useToast();
 const showSecret = ref(false);
 const regenerating = ref(false);
+const testingConnection = ref(false);
+const connectionResult = ref(null);
 
 const flashSecret = computed(() => props.newApiSecret || page.props.flash?.new_api_secret);
 
@@ -39,6 +41,25 @@ const statusLabel = computed(() => {
     return props.tenantApplication.is_active ? 'Aktif' : 'Nonaktif';
 });
 
+const connection = computed(() => connectionResult.value || {
+    status: props.tenantApplication.connection_status,
+    latency_ms: props.tenantApplication.connection_latency_ms,
+    checked_at: props.tenantApplication.connection_checked_at,
+    message: null,
+});
+
+const connectionTone = computed(() => ({
+    connected: 'success',
+    auth_error: 'warning',
+    offline: 'error',
+}[connection.value.status] || 'neutral'));
+
+const connectionLabel = computed(() => ({
+    connected: 'Terhubung',
+    auth_error: 'Secret/URL salah',
+    offline: 'Tidak dapat dihubungi',
+}[connection.value.status] || 'Belum dicek'));
+
 function formatDate(dateStr) {
     if (!dateStr) return '—';
     const d = new Date(dateStr);
@@ -54,7 +75,7 @@ function formatDate(dateStr) {
 function copyToClipboard(text) {
     if (navigator.clipboard) {
         navigator.clipboard.writeText(text);
-        toast({ message: 'Teks disalin ke clipboard!', type: 'success' });
+        showSuccessToast('Teks disalin ke clipboard!');
     }
 }
 
@@ -74,6 +95,44 @@ function regenerate() {
             }
         );
     });
+}
+
+async function testConnection() {
+    testingConnection.value = true;
+    const xsrfToken = document.cookie.match('(^|;)\\s*XSRF-TOKEN\\s*=\\s*([^;]+)')?.pop() || '';
+
+    try {
+        const response = await fetch(
+            route('admin.tenants.applications.test-connection', [props.tenant.id, props.tenantApplication.id]),
+            {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-XSRF-TOKEN': decodeURIComponent(xsrfToken),
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            },
+        );
+        const payload = await response.json();
+
+        if (!response.ok) {
+            throw new Error(payload.message || 'Tidak dapat memeriksa koneksi.');
+        }
+
+        connectionResult.value = payload;
+        if (payload.status === 'connected') {
+            showSuccessToast({ title: 'Koneksi berhasil', message: payload.message });
+        } else if (payload.status === 'auth_error') {
+            showWarningToast({ title: 'Koneksi gagal', message: payload.message });
+        } else {
+            showErrorToast({ title: 'Koneksi gagal', message: payload.message });
+        }
+    } catch (error) {
+        showErrorToast({ title: 'Koneksi gagal', message: error.message || 'Tidak dapat memeriksa koneksi.' });
+    } finally {
+        testingConnection.value = false;
+    }
 }
 </script>
 
@@ -122,18 +181,32 @@ function regenerate() {
                 </AppButton>
             </div>
 
-            <!-- API Credential Card -->
+            <!-- Connection & Credential Card -->
             <AppCard>
                 <div class="space-y-4">
                     <div class="flex flex-wrap items-center justify-between gap-2 border-b border-outline-variant/40 pb-4">
                         <div>
-                            <h2 class="text-lg font-semibold text-primary">Kredensial API & Header Subsidiary</h2>
-                            <p class="text-xs text-on-surface-variant">Gunakan informasi ini untuk menghubungkan subsidiary instance ke Holding App.</p>
+                            <h2 class="text-lg font-semibold text-primary">Koneksi</h2>
+                            <p class="text-xs text-on-surface-variant">Periksa koneksi dan kelola kredensial subsidiary.</p>
                         </div>
-                        <AppButton variant="secondary" size="sm" :loading="regenerating" @click="regenerate">
-                            <AppIcon name="refresh" class="mr-1" />
-                            Regenerate Secret
-                        </AppButton>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <AppBadge :tone="connectionTone">{{ connectionLabel }}</AppBadge>
+                            <AppButton variant="primary" size="sm" :loading="testingConnection" @click="testConnection">
+                                <AppIcon name="wifi" class="mr-1" />
+                                Test Koneksi
+                            </AppButton>
+                        </div>
+                    </div>
+
+                    <div class="grid gap-4 sm:grid-cols-2">
+                        <div class="rounded-md border border-outline-variant/40 bg-surface-container-low p-4">
+                            <p class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Latensi</p>
+                            <p class="mt-2 text-sm font-semibold text-on-surface">{{ connection.latency_ms !== null ? `${connection.latency_ms} ms` : '—' }}</p>
+                        </div>
+                        <div class="rounded-md border border-outline-variant/40 bg-surface-container-low p-4">
+                            <p class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Terakhir Dicek</p>
+                            <p class="mt-2 text-sm font-semibold text-on-surface">{{ formatDate(connection.checked_at) }}</p>
+                        </div>
                     </div>
 
                     <div class="grid gap-4 md:grid-cols-2">

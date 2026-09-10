@@ -11,6 +11,8 @@ use App\Models\Application;
 use App\Models\Tenant;
 use App\Models\TenantApplication;
 use App\Services\ActivityLogger;
+use App\Services\AppConnectionCheckService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -210,5 +212,33 @@ final class TenantApplicationController extends Controller
             ->back()
             ->with('success', 'API Secret berhasil di-regenerate. Secret lama sudah tidak berlaku.')
             ->with('new_api_secret', $newSecret);
+    }
+
+    public function testConnection(Request $request, AppConnectionCheckService $connectionCheckService, Tenant $tenant, TenantApplication $application): JsonResponse
+    {
+        abort_unless($application->tenant_id === $tenant->id, 404);
+
+        $result = $connectionCheckService->check($application);
+        $application->update([
+            'connection_status' => $result['status'],
+            'connection_latency_ms' => $result['latency_ms'],
+            'connection_checked_at' => now(),
+        ]);
+
+        $this->activityLogger->log(
+            $request,
+            'test_connection',
+            $request->user(),
+            TenantApplication::class,
+            $application->id,
+            [
+                'tenant_name' => $tenant->name,
+                'application_name' => $application->application?->name,
+                'connection_status' => $result['status'],
+                'connection_latency_ms' => $result['latency_ms'],
+            ]
+        );
+
+        return response()->json($result);
     }
 }

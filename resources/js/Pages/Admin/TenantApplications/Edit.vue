@@ -3,6 +3,7 @@ import { Head, Link, useForm } from '@inertiajs/vue3';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
 import AppButton from '../../../Components/AppButton.vue';
 import AppCard from '../../../Components/AppCard.vue';
+import AppDatePicker from '../../../Components/AppDatePicker.vue';
 import AppIcon from '../../../Components/AppIcon.vue';
 import AppInput from '../../../Components/AppInput.vue';
 import AppSwitch from '../../../Components/AppSwitch.vue';
@@ -79,10 +80,9 @@ function submit() {
                             required
                         />
 
-                        <AppInput
+                        <AppDatePicker
                             v-model="form.expired_at"
                             label="Tanggal Kadaluarsa (Opsional)"
-                            type="date"
                             :error="form.errors.expired_at"
                         />
 

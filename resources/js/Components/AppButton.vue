@@ -30,7 +30,7 @@ const variants = {
 
 const sizes = {
     compact: 'min-h-10 px-3 text-sm',
-    default: 'min-h-12 px-5',
+    default: 'min-h-14 px-5',
     large: 'min-h-14 px-6 text-lg',
 };
 

@@ -18,6 +18,7 @@ resources/js/Pages/**/*.vue
 **Inventory aktif:**
 
 - Atomik `App*`: `AppBadge`, `AppButton`, `AppCard`, `AppCheckbox`, `AppConfirmDialog`, `AppEmptyState`, `AppIcon`, `AppIconButton`, `AppInput`, `AppModal`, `AppSelect`, `AppSwitch`, `AppTextarea`, `AppToast`, `AppTooltip`.
+- Atomik `App*`: `AppDatePicker` untuk pemilih tanggal (`YYYY-MM-DD` atau string kosong); jangan pakai raw `<input type="date">`.
 - Data & select: `SmartDataTable`, `SmartSelect`, `ReportComparativeTable`.
 - Layout: `AdminLayout` (sidebar + topbar + dialog/toast), `AuthenticatedLayout`.
 - Composables: `useCan`, `useConfirm`, `useMoney`, `useTheme`, `useToast`.
@@ -34,6 +35,12 @@ Gunakan komponen dan composable yang sudah ada. Jangan membuat abstraksi baru bi
 Komponen baru boleh dibuat jika tidak ada padanan, dipakai minimal dua kali, atau kompleksitasnya nyata. Letakkan komponen umum di `resources/js/Components/`, lalu tambahkan ke inventory di atas.
 
 ## Aturan Token MD3
+
+## Konvensi Form Control
+
+- Semua form control (`AppInput`, `AppSelect`, `SmartSelect`, `AppDatePicker`, `AppSwitch` varian `field`, dan `AppButton` default) berdiri setinggi `h-14`/`min-h-14`.
+- `AppButton` varian `compact` (`min-h-10`) hanya untuk konteks inline, topbar, dan table actions; jangan override ukuran tombol pada form utama.
+- `AppTextarea` mengikuti tinggi konten karena multiline, tetapi wajib memakai token border, radius, dan focus yang sama.
 
 - Identitas visual adalah **Indigo Ledger**: light/dark token indigo sebagai primary, teal sebagai secondary, dan amber sebagai tertiary di `resources/css/app.css`.
 - Semua warna, permukaan, border, ikon status, dan shadow wajib memakai token dari `resources/css/app.css` (`surface`, `primary`, `secondary`, `error`, `tertiary`, `outline`, `on-*`).

@@ -5,6 +5,9 @@ Semua perubahan penting pada proyek **new_holding** dicatat dalam berkas ini. Fo
 ## [Unreleased]
 
 ### Added
+- **Standardisasi Form Control (`new_holding`)**:
+  - Komponen `AppDatePicker` berbasis native date input dengan API konsisten `AppInput`, state error/hint/disabled, batasan `min`/`max`, dan ikon tanggal yang tidak menghalangi picker native.
+  - Ganti date input langsung pada Create/Edit lisensi aplikasi menjadi `AppDatePicker`.
 - **Phase 3 — Unified Report (`new_holding`)**:
   - `report_caches` untuk payload laporan subsidiary dengan kunci unik `tenant_application_id + report_type + period`, TTL 30 menit, dan `fetched_at`.
   - `App\Services\SubsidiaryReportService` untuk fetch kontrak API `new_sidbm`, cache valid/force, matching composite key `code||name`, dan pemetaan state `ok|cache|offline|auth_error`.
@@ -50,6 +53,9 @@ Semua perubahan penting pada proyek **new_holding** dicatat dalam berkas ini. Fo
   - Kit Komponen Atomik & Domain MD3 (`resources/js/Components/`).
 
 ### Changed
+- **Form Control UI (`new_holding`)**:
+  - Tinggi default `AppButton` diseragamkan menjadi `min-h-14` mengikuti field form; varian `compact` tetap untuk konteks inline.
+  - Konvensi tinggi form control dan inventory `AppDatePicker` didokumentasikan.
 - **Navigation & Sidebar (`AdminLayout.vue`)**:
   - Penyesuaian menu navigasi otomatis sesuai peran: Superadmin (Dashboard, Tenants, Master Aplikasi, Log Aktivitas), Tenant Owner (Aplikasi Saya, Manajemen Staff), Tenant Staff (Aplikasi Saya).
   - Penyesuaian header panel dinamis (`Panel Superadmin`, `Panel Owner — {tenant}`, `Portal Staff — {tenant}`).

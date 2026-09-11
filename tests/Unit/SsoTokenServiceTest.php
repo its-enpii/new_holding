@@ -24,6 +24,7 @@ final class SsoTokenServiceTest extends TestCase
         $tenant = Tenant::factory()->create(['name' => 'BUMDesma Contoh']);
         $tenantApplication = TenantApplication::factory()->for($tenant)->create([
             'instance_url' => 'https://sidbm.test',
+            'sub_tenant_code' => 'sukamaju',
         ]);
         $user = User::factory()->tenantOwner()->for($tenant)->create();
         $service = app(SsoTokenService::class);
@@ -43,6 +44,7 @@ final class SsoTokenServiceTest extends TestCase
         $this->assertSame($user->name, $first['payload']['name']);
         $this->assertSame($user->role, $first['payload']['role']);
         $this->assertSame($tenant->name, $first['payload']['tenant_name']);
+        $this->assertSame('sukamaju', $first['payload']['sub_tenant_code']);
         $this->assertGreaterThan(now()->timestamp, $first['payload']['exp']);
         $this->assertLessThanOrEqual(now()->addMinute()->timestamp, $first['payload']['exp']);
         $this->assertArrayNotHasKey('signature', $first['payload']);
@@ -70,5 +72,18 @@ final class SsoTokenServiceTest extends TestCase
             hash_hmac('sha256', json_encode($payload), 'shared-secret'),
             $signature
         );
+    }
+
+    public function test_includes_null_sub_tenant_code_for_contract_stability(): void
+    {
+        config(['services.holding_sso.secret' => null]);
+        Cache::flush();
+
+        $tenantApplication = TenantApplication::factory()->create();
+        $user = User::factory()->superadmin()->create();
+
+        $payload = app(SsoTokenService::class)->create($tenantApplication, $user)['payload'];
+
+        $this->assertNull($payload['sub_tenant_code']);
     }
 }

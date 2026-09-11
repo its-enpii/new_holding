@@ -23,11 +23,19 @@ final class TenantApplicationQuickAssignController extends Controller
     ): RedirectResponse {
         $existingApplication = $tenant->tenantApplications()
             ->where('application_id', $request->integer('application_id'))
+            ->where('sub_tenant_code', $request->string('sub_tenant_code')->trim()->toString() ?: null)
             ->where('is_active', true)
             ->first();
 
         if ($existingApplication !== null) {
-            return redirect()->back()->with('error', 'Aplikasi sudah terpasang di usaha ini.');
+            $application = Application::query()->findOrFail($request->integer('application_id'));
+            $subTenantCode = $existingApplication->sub_tenant_code;
+
+            return redirect()->back()->with('error', sprintf(
+                "Aplikasi %s dengan kode sub-tenant '%s' sudah terpasang di usaha ini.",
+                $application->name,
+                $subTenantCode ?? '',
+            ));
         }
 
         $application = Application::query()->findOrFail($request->integer('application_id'));
@@ -36,6 +44,7 @@ final class TenantApplicationQuickAssignController extends Controller
             'application_id' => $application->id,
             'label' => $application->name,
             'instance_url' => $application->base_url,
+            'sub_tenant_code' => $request->string('sub_tenant_code')->trim()->toString() ?: null,
             'api_secret' => Str::random(40),
             'is_active' => true,
             'activated_at' => now(),
@@ -52,6 +61,7 @@ final class TenantApplicationQuickAssignController extends Controller
                 'tenant_name' => $tenant->name,
                 'application_name' => $application->name,
                 'instance_url' => $tenantApplication->instance_url,
+                'sub_tenant_code' => $tenantApplication->sub_tenant_code,
             ],
         );
 

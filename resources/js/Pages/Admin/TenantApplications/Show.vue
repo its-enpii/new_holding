@@ -263,6 +263,12 @@ async function testConnection() {
                             <dd class="mt-1 font-semibold text-on-surface">{{ tenantApplication.label || '—' }}</dd>
                         </div>
                         <div>
+                            <dt class="text-xs text-on-surface-variant">Kode Sub-Tenant</dt>
+                            <dd class="mt-1">
+                                <AppBadge tone="info-soft">{{ tenantApplication.sub_tenant_code || '—' }}</AppBadge>
+                            </dd>
+                        </div>
+                        <div>
                             <dt class="text-xs text-on-surface-variant">Status Lisensi</dt>
                             <dd class="mt-1"><AppBadge :tone="statusTone">{{ statusLabel }}</AppBadge></dd>
                         </div>

@@ -18,6 +18,7 @@ final class UpdateTenantApplicationRequest extends FormRequest
         return [
             'label' => ['nullable', 'string', 'max:255'],
             'instance_url' => ['required', 'string', 'url', 'max:255'],
+            'sub_tenant_code' => ['nullable', 'string', 'max:100'],
             'expired_at' => ['nullable', 'date'],
             'notes' => ['nullable', 'string', 'max:2000'],
             'is_active' => ['required', 'boolean'],

@@ -22,6 +22,7 @@ const formatDateForInput = (dateStr) => {
 const form = useForm({
     label: props.tenantApplication.label ?? '',
     instance_url: props.tenantApplication.instance_url ?? '',
+    sub_tenant_code: props.tenantApplication.sub_tenant_code ?? '',
     expired_at: formatDateForInput(props.tenantApplication.expired_at),
     notes: props.tenantApplication.notes ?? '',
     is_active: props.tenantApplication.is_active ?? true,
@@ -78,6 +79,13 @@ function submit() {
                             type="url"
                             :error="form.errors.instance_url"
                             required
+                        />
+
+                        <AppInput
+                            v-model="form.sub_tenant_code"
+                            label="Kode Sub-Tenant (Opsional)"
+                            placeholder="mis. sukamaju"
+                            :error="form.errors.sub_tenant_code"
                         />
 
                         <AppDatePicker

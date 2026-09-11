@@ -8,7 +8,7 @@ The holding portal exchanges a one-time token for a session in a subsidiary appl
 2. Holding validates the user, tenant, active license, and expiration.
 3. Holding creates a random 64-character hexadecimal token and stores its SHA-256 hash as `sso:{hash}` in cache for 60 seconds.
 4. Holding redirects to `{instance_url}/auth/holding?token={plainToken}`.
-5. The subsidiary verifies the token, consumes the cache entry once, logs the user in or creates the user, and redirects to its dashboard.
+5. The subsidiary verifies the token, consumes the cache entry once, resolves the target sub-tenant, logs the user in or creates the user, and redirects to its dashboard.
 
 The shared secret (`HOLDING_SSO_SECRET`) is optional. When configured and identical in both applications, Holding adds an HMAC signature for the cache payload; the subsidiary must verify the signature before consuming the cache entry.
 
@@ -24,10 +24,13 @@ The cache payload is JSON:
     "name": "Owner Tenant",
     "role": "tenant_owner",
     "tenant_name": "BUMDesma Contoh",
+    "sub_tenant_code": "sukamaju",
     "exp": 1787884800,
     "signature": "optional HMAC SHA-256 of the JSON payload without signature"
 }
 ```
+
+`sub_tenant_code` is always included. It is `null` when the license is not scoped to a code inside the subsidiary application.
 
 ## Holding Configuration
 
@@ -39,6 +42,10 @@ For a development-only setup, leave it empty. In production, set the same non-em
 
 ## Subsidiary Laravel Implementation
 
+After token verification and signature validation, the subsidiary **MUST** activate the tenant context identified by `sub_tenant_code` before authenticating the user. If the value is `null`, retain the application's existing/default tenant behavior. When the code is present, resolve that exact tenant and bind the created or authenticated user to that tenant; do not fall back silently to the default tenant.
+
+In `new_sidbm`, the resolved code may be used directly through the application's tenant resolver, or forwarded as `X-Tenant-Code: {sub_tenant_code}` when constructing the subsequent route/request through `App\Tenancy\Middleware\ResolveTenant`. The contract does not require a particular subsidiary implementation—only that the correct tenant context is active before login/user binding.
+
 ```php
 <?php
 
@@ -48,6 +55,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Tenancy\TenantResolver;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -61,6 +69,7 @@ final class HoldingSsoController extends Controller
 
         try {
             $payload = $this->consumePayload($token);
+            $tenant = $this->resolveTenant($payload);
             $user = User::query()->updateOrCreate(
                 ['email' => $payload['email']],
                 [
@@ -79,6 +88,30 @@ final class HoldingSsoController extends Controller
         auth()->login($user);
 
         return redirect()->intended(route('dashboard'));
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function resolveTenant(array $payload): Tenant
+    {
+        if (! array_key_exists('sub_tenant_code', $payload)) {
+            throw new \RuntimeException('Invalid SSO payload contract.');
+        }
+
+        $subTenantCode = $payload['sub_tenant_code'];
+
+        if ($subTenantCode === null) {
+            return TenantResolver::default();
+        }
+
+        $tenant = TenantResolver::resolveByCode((string) $subTenantCode);
+
+        if ($tenant === null) {
+            throw new \RuntimeException('Sub-tenant was not found.');
+        }
+
+        return $tenant;
     }
 
     /**

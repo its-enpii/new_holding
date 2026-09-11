@@ -120,7 +120,12 @@ function formatExpiredAt(value) {
                                     >
                                         <span class="flex min-w-0 items-center gap-2 text-xs font-medium text-on-surface">
                                             <AppIcon :name="application.icon_path || 'widgets'" class="text-primary" />
-                                            <span class="truncate">{{ application.label || application.application_name || 'Aplikasi' }}</span>
+                                            <span class="truncate">
+                                                {{ application.label || application.application_name || 'Aplikasi' }}
+                                                <span v-if="application.sub_tenant_code" class="font-normal text-on-surface-variant">
+                                                    · {{ application.sub_tenant_code }}
+                                                </span>
+                                            </span>
                                         </span>
                                         <AppButton
                                             variant="ghost"

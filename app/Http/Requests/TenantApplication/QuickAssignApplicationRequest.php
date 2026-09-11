@@ -24,6 +24,7 @@ final class QuickAssignApplicationRequest extends FormRequest
                 'integer',
                 Rule::exists('applications', 'id')->where(fn ($query) => $query->where('is_active', true)),
             ],
+            'sub_tenant_code' => ['nullable', 'string', 'max:100'],
         ];
     }
 }

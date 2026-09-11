@@ -29,6 +29,7 @@ final class QuickAssignTest extends TestCase
         $response->assertRedirect(route('dashboard'))
             ->assertSessionHas('success', 'Aplikasi SIDBM berhasil ditambahkan ke BUMDesma Maju.');
         $this->assertSame($application->base_url, $tenantApplication->instance_url);
+        $this->assertNull($tenantApplication->sub_tenant_code);
         $this->assertSame(40, strlen($tenantApplication->api_secret));
         $this->assertTrue($tenantApplication->is_active);
         $this->assertNotNull($tenantApplication->activated_at);
@@ -60,8 +61,87 @@ final class QuickAssignTest extends TestCase
                 'application_id' => $application->id,
             ])
             ->assertRedirect(route('dashboard'))
-            ->assertSessionHas('error', 'Aplikasi sudah terpasang di usaha ini.');
+            ->assertSessionHas(
+                'error',
+                "Aplikasi {$application->name} dengan kode sub-tenant '' sudah terpasang di usaha ini."
+            );
 
+        $this->assertSame($existing->id, $tenant->tenantApplications()->firstOrFail()->id);
+    }
+
+    public function test_quick_assigns_a_sub_tenant_code(): void
+    {
+        $superadmin = User::factory()->superadmin()->create();
+        $tenant = Tenant::factory()->create();
+        $application = Application::factory()->create(['name' => 'SIDBM']);
+
+        $this->actingAs($superadmin)
+            ->from(route('dashboard'))
+            ->post(route('admin.tenants.applications.quick-assign', $tenant), [
+                'application_id' => $application->id,
+                'sub_tenant_code' => ' sukamaju ',
+            ]);
+
+        $tenantApplication = $tenant->tenantApplications()->firstOrFail();
+        $this->assertSame('sukamaju', $tenantApplication->sub_tenant_code);
+    }
+
+    public function test_allows_duplicate_application_with_a_different_sub_tenant_code(): void
+    {
+        $superadmin = User::factory()->superadmin()->create();
+        $tenant = Tenant::factory()->create();
+        $application = Application::factory()->create(['name' => 'SIDBM']);
+        $existing = $tenant->tenantApplications()->create([
+            'application_id' => $application->id,
+            'label' => 'SIDBM',
+            'instance_url' => $application->base_url,
+            'sub_tenant_code' => 'mekarsari',
+            'api_secret' => 'existing-secret',
+            'is_active' => true,
+            'activated_at' => now(),
+        ]);
+
+        $this->actingAs($superadmin)
+            ->from(route('dashboard'))
+            ->post(route('admin.tenants.applications.quick-assign', $tenant), [
+                'application_id' => $application->id,
+                'sub_tenant_code' => 'sukamaju',
+            ])
+            ->assertSessionHas('success', 'Aplikasi SIDBM berhasil ditambahkan ke '.$tenant->name.'.');
+
+        $this->assertSame(2, $tenant->tenantApplications()->count());
+        $this->assertSame('mekarsari', $existing->fresh()->sub_tenant_code);
+        $this->assertSame('sukamaju', $tenant->tenantApplications()->latest('id')->first()->sub_tenant_code);
+    }
+
+    public function test_rejects_duplicate_application_with_the_same_sub_tenant_code(): void
+    {
+        $superadmin = User::factory()->superadmin()->create();
+        $tenant = Tenant::factory()->create();
+        $application = Application::factory()->create(['name' => 'SIDBM']);
+        $existing = $tenant->tenantApplications()->create([
+            'application_id' => $application->id,
+            'label' => 'SIDBM',
+            'instance_url' => $application->base_url,
+            'sub_tenant_code' => 'sukamaju',
+            'api_secret' => 'existing-secret',
+            'is_active' => true,
+            'activated_at' => now(),
+        ]);
+
+        $this->actingAs($superadmin)
+            ->from(route('dashboard'))
+            ->post(route('admin.tenants.applications.quick-assign', $tenant), [
+                'application_id' => $application->id,
+                'sub_tenant_code' => 'sukamaju',
+            ])
+            ->assertRedirect(route('dashboard'))
+            ->assertSessionHas(
+                'error',
+                "Aplikasi SIDBM dengan kode sub-tenant 'sukamaju' sudah terpasang di usaha ini."
+            );
+
+        $this->assertSame(1, $tenant->tenantApplications()->count());
         $this->assertSame($existing->id, $tenant->tenantApplications()->firstOrFail()->id);
     }
 

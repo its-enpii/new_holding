@@ -20,6 +20,7 @@ final class SsoTokenService
      *     name: string,
      *     role: string,
      *     tenant_name: ?string,
+     *     sub_tenant_code: ?string,
      *     exp: int
      * }
      */
@@ -36,6 +37,7 @@ final class SsoTokenService
             'name' => $user->name,
             'role' => $user->role,
             'tenant_name' => $tenantName,
+            'sub_tenant_code' => $tenantApplication->sub_tenant_code,
             'exp' => $expiresAt->timestamp,
         ];
 

@@ -59,6 +59,7 @@ final class HoldingSsoFeatureTest extends TestCase
                 'name' => $superadmin->name,
                 'role' => $superadmin->role,
                 'tenant_name' => $tenant->name,
+                'sub_tenant_code' => null,
                 'exp' => now()->addMinute()->timestamp,
             ],
             Cache::get('sso:'.hash('sha256', $query['token']))

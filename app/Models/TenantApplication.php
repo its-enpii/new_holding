@@ -21,6 +21,7 @@ final class TenantApplication extends Model
         'application_id',
         'label',
         'instance_url',
+        'sub_tenant_code',
         'api_secret',
         'is_active',
         'activated_at',

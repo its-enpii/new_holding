@@ -258,14 +258,14 @@ async function testConnection() {
                                 {{ tenantApplication.application?.name }}
                             </dd>
                         </div>
-                        <div>
+                        <div v-if="tenantApplication.sub_tenant_code">
                             <dt class="text-xs text-on-surface-variant">Label Instance</dt>
                             <dd class="mt-1 font-semibold text-on-surface">{{ tenantApplication.label || '—' }}</dd>
                         </div>
-                        <div>
+                        <div v-if="tenantApplication.sub_tenant_code">
                             <dt class="text-xs text-on-surface-variant">Kode Sub-Tenant</dt>
                             <dd class="mt-1">
-                                <AppBadge tone="info-soft">{{ tenantApplication.sub_tenant_code || '—' }}</AppBadge>
+                                <AppBadge tone="info-soft">{{ tenantApplication.sub_tenant_code }}</AppBadge>
                             </dd>
                         </div>
                         <div>

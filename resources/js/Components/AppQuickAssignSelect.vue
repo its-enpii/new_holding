@@ -1,5 +1,5 @@
 <script setup>
-import { computed, useId } from 'vue';
+import { computed, ref, useId, watch } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import AppIcon from './AppIcon.vue';
 import AppInput from './AppInput.vue';
@@ -21,6 +21,14 @@ const form = useForm({ application_id: '', sub_tenant_code: '' });
 const componentId = useId();
 const selectId = `quick-assign-${componentId}`;
 const subTenantCodeId = `quick-assign-code-${componentId}`;
+const subTenantDisclosureId = `${subTenantCodeId}-disclosure`;
+const isSubTenantCodeVisible = ref(Boolean(form.errors.sub_tenant_code));
+
+watch(() => form.errors.sub_tenant_code, (error) => {
+    if (error) {
+        isSubTenantCodeVisible.value = true;
+    }
+}, { immediate: true });
 
 const selectableApplications = computed(() => {
     const assignedIds = new Set(props.assignedApplicationIds.map((value) => Number(value)));
@@ -40,6 +48,7 @@ function assign() {
         preserveScroll: true,
         onSuccess: () => {
             form.reset();
+            isSubTenantCodeVisible.value = false;
         },
     });
 }
@@ -47,7 +56,7 @@ function assign() {
 
 <template>
     <div>
-        <form class="grid items-end gap-3 sm:grid-cols-2" @submit.prevent="assign">
+        <form class="space-y-2" @submit.prevent="assign">
             <AppSelect
                 :id="selectId"
                 v-model="form.application_id"
@@ -58,10 +67,23 @@ function assign() {
                 :error="form.errors.application_id"
                 :disabled="form.processing"
             />
+            <button
+                :id="subTenantDisclosureId"
+                type="button"
+                class="inline-flex items-center gap-1 rounded-sm text-xs font-medium text-on-surface-variant transition hover:text-primary focus-visible:ring-2 focus-visible:ring-primary-container/20 focus-visible:outline-none"
+                :aria-expanded="isSubTenantCodeVisible"
+                :aria-controls="subTenantCodeId"
+                :disabled="form.processing"
+                @click="isSubTenantCodeVisible = !isSubTenantCodeVisible"
+            >
+                Pakai kode sub-tenant
+                <AppIcon :name="isSubTenantCodeVisible ? 'expand_less' : 'expand_more'" class="text-base" />
+            </button>
             <AppInput
+                v-if="isSubTenantCodeVisible"
                 :id="subTenantCodeId"
                 v-model="form.sub_tenant_code"
-                label="Kode Tenant (opsional)"
+                label="Kode Tenant"
                 placeholder="mis. sukamaju"
                 hint="Kode tenant di dalam aplikasi usaha, bila aplikasi multi-tenant"
                 :error="form.errors.sub_tenant_code"

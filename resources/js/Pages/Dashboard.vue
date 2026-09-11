@@ -6,6 +6,7 @@ import AppButton from '../Components/AppButton.vue';
 import AppCard from '../Components/AppCard.vue';
 import AppEmptyState from '../Components/AppEmptyState.vue';
 import AppIcon from '../Components/AppIcon.vue';
+import AppQuickAssignSelect from '../Components/AppQuickAssignSelect.vue';
 
 defineProps({
     stats: { type: Object, required: true },
@@ -14,6 +15,7 @@ defineProps({
         default: () => ({ items: [], total: 0 }),
     },
     tenantList: { type: Array, default: () => [] },
+    availableApplications: { type: Array, default: () => [] },
 });
 
 function formatExpiredAt(value) {
@@ -132,6 +134,13 @@ function formatExpiredAt(value) {
                             </div>
 
                             <div class="mt-5 border-t border-outline-variant/40 pt-4">
+                                <AppQuickAssignSelect
+                                    v-if="availableApplications.length"
+                                    class="mb-3"
+                                    :tenant-id="tenant.id"
+                                    :available-applications="availableApplications"
+                                    :assigned-application-ids="tenant.assigned_application_ids"
+                                />
                                 <AppButton variant="secondary" size="compact" :href="route('admin.tenants.show', tenant.id)" class="w-full">
                                     <AppIcon name="visibility" />
                                     Detail Usaha

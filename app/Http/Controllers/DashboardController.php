@@ -70,6 +70,15 @@ final class DashboardController extends Controller
                     'assignedApps' => TenantApplication::query()->where('is_active', true)->count(),
                 ],
                 'tenantList' => $tenants->map(fn (Tenant $tenant) => $this->tenantListEntry($tenant))->all(),
+                'availableApplications' => Application::query()
+                    ->where('is_active', true)
+                    ->orderBy('name')
+                    ->get(['id', 'name'])
+                    ->map(fn (Application $application) => [
+                        'id' => $application->id,
+                        'name' => $application->name,
+                    ])
+                    ->all(),
                 'licenseAlerts' => [
                     'items' => $alerts,
                     'total' => $expiringLicenses->count() + $expiredLicenses->count(),
@@ -133,6 +142,11 @@ final class DashboardController extends Controller
                 'application_name' => $tenantApplication->application?->name,
                 'icon_path' => $tenantApplication->application?->icon_path,
             ])->all(),
+            'assigned_application_ids' => $tenant->tenantApplications
+                ->where('is_active', true)
+                ->map(fn (TenantApplication $tenantApplication) => $tenantApplication->application_id)
+                ->values()
+                ->all(),
         ];
     }
 

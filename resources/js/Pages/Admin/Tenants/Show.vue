@@ -6,8 +6,12 @@ import AppButton from '../../../Components/AppButton.vue';
 import AppCard from '../../../Components/AppCard.vue';
 import AppEmptyState from '../../../Components/AppEmptyState.vue';
 import AppIcon from '../../../Components/AppIcon.vue';
+import AppQuickAssignSelect from '../../../Components/AppQuickAssignSelect.vue';
 
-defineProps({ tenant: { type: Object, required: true } });
+defineProps({
+    tenant: { type: Object, required: true },
+    availableApplications: { type: Array, default: () => [] },
+});
 </script>
 
 <template>
@@ -56,6 +60,14 @@ defineProps({ tenant: { type: Object, required: true } });
                         </div>
                     </div>
                     <AppBadge tone="primary-soft">{{ tenant.tenantApplications?.length || 0 }} aplikasi</AppBadge>
+                </div>
+
+                <div v-if="availableApplications.length" class="mt-4 max-w-xs">
+                    <AppQuickAssignSelect
+                        :tenant-id="tenant.id"
+                        :available-applications="availableApplications"
+                        :assigned-application-ids="tenant.tenantApplications?.map((application) => application.application_id) ?? []"
+                    />
                 </div>
 
                 <div v-if="!tenant.tenantApplications?.length" class="mt-4">

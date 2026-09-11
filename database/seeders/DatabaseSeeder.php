@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace Database\Seeders;
 
 use App\Models\Application;
+use App\Models\SitePage;
+use App\Models\SitePost;
+use App\Models\SiteSetting;
 use App\Models\Tenant;
 use App\Models\TenantApplication;
 use Illuminate\Database\Seeder;
@@ -75,6 +78,29 @@ final class DatabaseSeeder extends Seeder
             'activated_at' => now(),
             'expired_at' => now()->addYear(),
             'notes' => 'Lisensi produksi',
+        ]);
+
+        // Website seed data
+        SiteSetting::current();
+
+        SitePost::query()->create([
+            'slug' => 'peluncuran-portal-holding-terpadu',
+            'title' => 'Peluncuran Portal Holding Terpadu untuk Tata Kelola Unit Usaha',
+            'excerpt' => 'Holding resmi meluncurkan portal terpadu untuk monitoring lisensi, akses cepat aplikasi, dan pelaporan keuangan konsolidasi.',
+            'content' => '<p>Portal holding resmi diperkenalkan sebagai langkah strategis dalam mengintegrasikan ekosistem unit bisnis secara terpusat dan transparan.</p><p>Melalui portal ini, setiap unit usaha dapat mengelola aplikasi terdaftar, memantau masa aktif lisensi, serta menyajikan laporan keuangan secara terstruktur.</p>',
+            'status' => 'published',
+            'published_at' => now()->subDays(2),
+            'author_name' => 'Administrator',
+            'meta_description' => 'Peluncuran portal holding terpadu untuk tata kelola unit usaha dan pelaporan konsolidasi.',
+        ]);
+
+        SitePage::query()->create([
+            'slug' => 'profil-holding',
+            'title' => 'Profil Holding & Ekosistem Bisnis',
+            'content' => '<p>Holding kami berkomitmen membangun ekosistem usaha yang mandiri, adaptif, dan berkelanjutan melalui transformasi digital dan tata kelola profesional.</p><h2>Visi & Misi</h2><p>Menjadi penggerak utama pertumbuhan ekonomi unit bisnis melalui sinergi teknologi informasi dan kolaborasi strategis.</p>',
+            'status' => 'published',
+            'published_at' => now()->subDays(5),
+            'meta_description' => 'Profil dan komitmen holding dalam pengembangan ekosistem usaha terintegrasi.',
         ]);
     }
 }

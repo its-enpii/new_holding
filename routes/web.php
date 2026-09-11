@@ -7,32 +7,15 @@ use App\Http\Controllers\Admin\ApplicationController;
 use App\Http\Controllers\Admin\ReportController as AdminReportController;
 use App\Http\Controllers\Admin\TenantApplicationController;
 use App\Http\Controllers\Admin\TenantController;
-use App\Http\Controllers\Admin\Website\WebsiteMessageController;
-use App\Http\Controllers\Admin\Website\WebsitePageController;
-use App\Http\Controllers\Admin\Website\WebsitePostController;
-use App\Http\Controllers\Admin\Website\WebsiteSettingController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\PublicSite\PublicSiteController;
 use App\Http\Controllers\Tenant\AppAccessController;
 use App\Http\Controllers\Tenant\ReportController;
 use App\Http\Controllers\Tenant\StaffController;
 use Illuminate\Support\Facades\Route;
 
-// Public Site & Blog Routes
-Route::get('/', [PublicSiteController::class, 'home'])->name('home');
-Route::get('/berita', [PublicSiteController::class, 'posts'])->name('public.posts');
-Route::get('/berita/{slug}', [PublicSiteController::class, 'post'])->name('public.post');
-Route::get('/p/{slug}', [PublicSiteController::class, 'page'])->name('public.page');
-Route::get('/kontak', [PublicSiteController::class, 'contact'])->name('public.contact');
-Route::post('/kontak', [PublicSiteController::class, 'storeMessage'])
-    ->middleware('throttle:10,1')
-    ->name('public.contact.store');
-Route::get('/sitemap.xml', [PublicSiteController::class, 'sitemap'])->name('public.sitemap');
-Route::get('/robots.txt', [PublicSiteController::class, 'robots'])->name('public.robots');
-
-// Guest Authentication Routes
 Route::middleware('guest')->group(function (): void {
+    Route::get('/', fn () => redirect()->route('login'))->name('home');
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [AuthController::class, 'login'])
         ->middleware('throttle:5,1')
@@ -83,22 +66,5 @@ Route::middleware(['auth', 'throttle:web-app'])->group(function (): void {
         Route::get('/activity-logs', [ActivityLogController::class, 'index'])->name('activity-logs.index');
         Route::get('/reports', [AdminReportController::class, 'index'])->name('reports.index');
         Route::get('/reports/view', [AdminReportController::class, 'show'])->name('reports.show');
-    });
-
-    // Superadmin Website Management
-    Route::middleware('role:superadmin')->prefix('website')->name('website.')->group(function (): void {
-        Route::resource('posts', WebsitePostController::class)->except(['show']);
-        Route::post('posts/{post}/restore', [WebsitePostController::class, 'restore'])->name('posts.restore');
-        Route::delete('posts/{post}/cover', [WebsitePostController::class, 'removeCover'])->name('posts.remove-cover');
-
-        Route::resource('pages', WebsitePageController::class)->except(['show']);
-        Route::post('pages/{page}/restore', [WebsitePageController::class, 'restore'])->name('pages.restore');
-
-        Route::get('settings', [WebsiteSettingController::class, 'edit'])->name('settings.edit');
-        Route::match(['put', 'patch'], 'settings', [WebsiteSettingController::class, 'update'])->name('settings.update');
-
-        Route::get('messages', [WebsiteMessageController::class, 'index'])->name('messages.index');
-        Route::post('messages/{message}/mark-read', [WebsiteMessageController::class, 'markRead'])->name('messages.mark-read');
-        Route::delete('messages/{message}', [WebsiteMessageController::class, 'destroy'])->name('messages.destroy');
     });
 });

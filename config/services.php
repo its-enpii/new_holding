@@ -35,4 +35,7 @@ return [
         ],
     ],
 
+    'holding_sso' => [
+        'secret' => env('HOLDING_SSO_SECRET'),
+    ],
 ];

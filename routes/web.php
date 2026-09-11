@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\ApplicationController;
 use App\Http\Controllers\Admin\ReportController as AdminReportController;
 use App\Http\Controllers\Admin\TenantApplicationController;
 use App\Http\Controllers\Admin\TenantController;
+use App\Http\Controllers\Admin\TenantSsoController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Tenant\AppAccessController;
@@ -57,6 +58,9 @@ Route::middleware(['auth', 'throttle:web-app'])->group(function (): void {
                 ->middleware('throttle:6,1')
                 ->name('applications.test-connection');
             Route::post('applications/{application}/regenerate-secret', [TenantApplicationController::class, 'regenerateSecret'])->name('applications.regenerate-secret');
+            Route::get('applications/{tenantApplication}/sso', [TenantSsoController::class, 'store'])
+                ->middleware('throttle:app.access')
+                ->name('applications.sso');
         });
 
         Route::resource('applications', ApplicationController::class)->except(['destroy']);

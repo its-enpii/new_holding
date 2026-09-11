@@ -62,8 +62,36 @@ final class TenantController extends Controller
 
     public function show(Tenant $tenant): Response
     {
+        $tenant->load([
+            'tenantApplications' => fn ($query) => $query
+                ->where('is_active', true)
+                ->where(fn ($scope) => $scope
+                    ->whereNull('expired_at')
+                    ->orWhere('expired_at', '>', now()))
+                ->with('application')
+                ->orderBy('label')
+                ->orderBy('application_id'),
+        ]);
+
         return Inertia::render('Admin/Tenants/Show', [
-            'tenant' => $tenant,
+            'tenant' => [
+                'id' => $tenant->id,
+                'name' => $tenant->name,
+                'slug' => $tenant->slug,
+                'domain' => $tenant->domain,
+                'email' => $tenant->email,
+                'phone' => $tenant->phone,
+                'address' => $tenant->address,
+                'is_active' => $tenant->is_active,
+                'tenantApplications' => $tenant->tenantApplications->map(fn ($tenantApplication) => [
+                    'id' => $tenantApplication->id,
+                    'label' => $tenantApplication->label,
+                    'instance_url' => $tenantApplication->instance_url,
+                    'expired_at' => $tenantApplication->expired_at?->toIso8601String(),
+                    'application_name' => $tenantApplication->application?->name,
+                    'icon_path' => $tenantApplication->application?->icon_path,
+                ]),
+            ],
         ]);
     }
 

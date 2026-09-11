@@ -2,6 +2,7 @@
 import { Head } from '@inertiajs/vue3';
 import AdminLayout from '../Layouts/AdminLayout.vue';
 import AppBadge from '../Components/AppBadge.vue';
+import AppButton from '../Components/AppButton.vue';
 import AppCard from '../Components/AppCard.vue';
 import AppEmptyState from '../Components/AppEmptyState.vue';
 import AppIcon from '../Components/AppIcon.vue';
@@ -12,6 +13,7 @@ defineProps({
         type: Object,
         default: () => ({ items: [], total: 0 }),
     },
+    tenantList: { type: Array, default: () => [] },
 });
 
 function formatExpiredAt(value) {
@@ -51,6 +53,94 @@ function formatExpiredAt(value) {
                     </div>
                 </AppCard>
             </div>
+
+            <AppCard>
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    <div class="flex items-center gap-3">
+                        <AppIcon name="apartment" tone="primary" container-size="10" />
+                        <div>
+                            <h2 class="text-lg font-semibold text-on-surface">Daftar Usaha</h2>
+                            <p class="text-sm text-on-surface-variant">Seluruh tenant beserta aplikasi terpasang dan status lisensi.</p>
+                        </div>
+                    </div>
+                    <AppBadge tone="primary-soft">{{ tenantList.length }} usaha</AppBadge>
+                </div>
+
+                <div v-if="tenantList.length === 0" class="mt-4">
+                    <AppEmptyState
+                        icon="apartment"
+                        title="Belum Ada Usaha"
+                        description="Tenant belum tersedia untuk ditampilkan di dashboard."
+                    />
+                </div>
+
+                <div v-else class="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                    <AppCard
+                        v-for="tenant in tenantList"
+                        :key="tenant.id"
+                        class="border border-outline-variant/60 transition hover:border-primary/50 hover:shadow-md"
+                    >
+                        <div class="flex h-full flex-col">
+                            <div class="flex items-start justify-between gap-3">
+                                <div class="min-w-0">
+                                    <h3 class="truncate text-lg font-semibold text-primary">{{ tenant.name }}</h3>
+                                    <p class="mt-1 text-xs text-on-surface-variant">{{ tenant.applications_count }} aplikasi terpasang</p>
+                                </div>
+                                <AppBadge :tone="tenant.is_active ? 'success' : 'neutral'">
+                                    {{ tenant.is_active ? 'Aktif' : 'Nonaktif' }}
+                                </AppBadge>
+                            </div>
+
+                            <dl class="mt-4 grid grid-cols-2 gap-3">
+                                <div class="rounded-md bg-surface-container-low p-3">
+                                    <dt class="text-[11px] font-medium text-on-surface-variant">Expiring ≤7 hari</dt>
+                                    <dd class="mt-1 text-xl font-semibold" :class="tenant.expiring_count > 0 ? 'text-tertiary' : 'text-on-surface'">
+                                        {{ tenant.expiring_count }}
+                                    </dd>
+                                </div>
+                                <div class="rounded-md bg-surface-container-low p-3">
+                                    <dt class="text-[11px] font-medium text-on-surface-variant">Kadaluarsa</dt>
+                                    <dd class="mt-1 text-xl font-semibold" :class="tenant.expired_count > 0 ? 'text-error' : 'text-on-surface'">
+                                        {{ tenant.expired_count }}
+                                    </dd>
+                                </div>
+                            </dl>
+
+                            <div class="mt-4 flex-1">
+                                <p v-if="tenant.applications.length === 0" class="rounded-md bg-surface-container-low p-3 text-xs text-on-surface-variant">
+                                    Belum ada aplikasi aktif.
+                                </p>
+                                <ul v-else class="space-y-2">
+                                    <li
+                                        v-for="application in tenant.applications"
+                                        :key="application.id"
+                                        class="flex items-center justify-between gap-3 rounded-md bg-surface-container-low px-3 py-2"
+                                    >
+                                        <span class="flex min-w-0 items-center gap-2 text-xs font-medium text-on-surface">
+                                            <AppIcon :name="application.icon_path || 'widgets'" class="text-primary" />
+                                            <span class="truncate">{{ application.label || application.application_name || 'Aplikasi' }}</span>
+                                        </span>
+                                        <AppButton
+                                            variant="ghost"
+                                            size="compact"
+                                            icon="open_in_new"
+                                            :href="route('admin.tenants.applications.sso', [tenant.id, application.id])"
+                                            aria-label="Buka Aplikasi"
+                                        />
+                                    </li>
+                                </ul>
+                            </div>
+
+                            <div class="mt-5 border-t border-outline-variant/40 pt-4">
+                                <AppButton variant="secondary" size="compact" :href="route('admin.tenants.show', tenant.id)" class="w-full">
+                                    <AppIcon name="visibility" />
+                                    Detail Usaha
+                                </AppButton>
+                            </div>
+                        </div>
+                    </AppCard>
+                </div>
+            </AppCard>
 
             <AppCard>
                 <div class="flex flex-wrap items-center justify-between gap-3">

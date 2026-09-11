@@ -1,0 +1,26 @@
+import { chromium } from '@playwright/test';
+import fs from 'node:fs';
+
+const base = 'http://localhost:8000';
+const shots = '/root/tasks/holding-sso/shots';
+fs.mkdirSync(shots, { recursive: true });
+const browser = await chromium.launch();
+const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, deviceScaleFactor: 2 });
+const page = await context.newPage();
+await page.goto(`${base}/login`);
+await page.getByLabel('Email').fill('admin@holding.local');
+await page.getByRole('textbox', { name: 'Password' }).fill('password');
+await page.getByRole('button', { name: 'Masuk' }).click();
+await page.waitForURL('**/dashboard');
+await page.getByRole('heading', { name: 'Daftar Usaha' }).waitFor();
+await page.evaluate(() => localStorage.setItem('theme', 'light'));
+await page.reload();
+await page.getByRole('heading', { name: 'Daftar Usaha' }).waitFor();
+await page.waitForTimeout(500);
+await page.screenshot({ path: `${shots}/dashboard-light.png`, fullPage: true });
+await page.evaluate(() => localStorage.setItem('theme', 'dark'));
+await page.reload();
+await page.getByRole('heading', { name: 'Daftar Usaha' }).waitFor();
+await page.waitForTimeout(500);
+await page.screenshot({ path: `${shots}/dashboard-dark.png`, fullPage: true });
+await browser.close();

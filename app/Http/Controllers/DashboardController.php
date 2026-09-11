@@ -38,6 +38,29 @@ final class DashboardController extends Controller
             ])
                 ->take(5)
                 ->values();
+            $expiringAt = $now->copy()->addDays(7);
+            $tenants = Tenant::query()
+                ->orderBy('is_active', 'desc')
+                ->orderBy('name')
+                ->withCount([
+                    'tenantApplications as applications_count',
+                    'tenantApplications as expiring_count' => fn ($query) => $query
+                        ->where('is_active', true)
+                        ->whereBetween('expired_at', [$now, $expiringAt]),
+                    'tenantApplications as expired_count' => fn ($query) => $query
+                        ->where('is_active', true)
+                        ->where('expired_at', '<', $now),
+                ])
+                ->with(['tenantApplications' => fn ($query) => $query
+                    ->where('is_active', true)
+                    ->where(fn ($scope) => $scope
+                        ->whereNull('expired_at')
+                        ->orWhere('expired_at', '>', $now))
+                    ->with('application')
+                    ->orderBy('label')
+                    ->orderBy('application_id'),
+                ])
+                ->get();
 
             return Inertia::render('Dashboard', [
                 'stats' => [
@@ -46,6 +69,7 @@ final class DashboardController extends Controller
                     'users' => User::query()->count(),
                     'assignedApps' => TenantApplication::query()->where('is_active', true)->count(),
                 ],
+                'tenantList' => $tenants->map(fn (Tenant $tenant) => $this->tenantListEntry($tenant))->all(),
                 'licenseAlerts' => [
                     'items' => $alerts,
                     'total' => $expiringLicenses->count() + $expiredLicenses->count(),
@@ -87,6 +111,29 @@ final class DashboardController extends Controller
                 ],
             ]),
         ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function tenantListEntry(Tenant $tenant): array
+    {
+        return [
+            'id' => $tenant->id,
+            'name' => $tenant->name,
+            'is_active' => $tenant->is_active,
+            'applications_count' => $tenant->applications_count,
+            'expiring_count' => $tenant->expiring_count,
+            'expired_count' => $tenant->expired_count,
+            'applications' => $tenant->tenantApplications->map(fn (TenantApplication $tenantApplication) => [
+                'id' => $tenantApplication->id,
+                'label' => $tenantApplication->label,
+                'instance_url' => $tenantApplication->instance_url,
+                'expired_at' => $tenantApplication->expired_at?->toIso8601String(),
+                'application_name' => $tenantApplication->application?->name,
+                'icon_path' => $tenantApplication->application?->icon_path,
+            ])->all(),
+        ];
     }
 
     /**

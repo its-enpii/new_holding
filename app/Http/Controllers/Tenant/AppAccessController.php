@@ -6,34 +6,38 @@ namespace App\Http\Controllers\Tenant;
 
 use App\Http\Controllers\Controller;
 use App\Models\TenantApplication;
+use App\Services\Access\TenantApplicationAccessValidator;
 use App\Services\ActivityLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response;
+use Illuminate\Validation\ValidationException;
 
 final class AppAccessController extends Controller
 {
     public function __construct(
         private readonly ActivityLogger $activityLogger,
+        private readonly TenantApplicationAccessValidator $accessValidator,
     ) {}
 
-    public function access(Request $request, TenantApplication $tenantApplication): RedirectResponse|Response
+    public function access(Request $request, TenantApplication $tenantApplication): RedirectResponse
     {
         $user = $request->user();
 
-        if ($user === null || $tenantApplication->tenant_id !== $user->tenant_id) {
+        if ($user === null) {
             abort(403, 'Anda tidak memiliki akses ke aplikasi ini.');
         }
 
-        if (! $tenantApplication->is_active) {
-            return redirect()->back()->with('error', 'Aplikasi ini sedang dinonaktifkan oleh administrator.');
-        }
+        try {
+            $context = $this->accessValidator->validate($user, $tenantApplication);
+        } catch (ValidationException $exception) {
+            if ($tenantApplication->tenant_id !== $user->tenant_id) {
+                abort(403, 'Anda tidak memiliki akses ke aplikasi ini.');
+            }
 
-        if ($tenantApplication->isExpired()) {
-            return redirect()->back()->with('error', 'Masa aktif lisensi aplikasi ini telah berakhir. Silakan hubungi vendor untuk perpanjangan.');
+            return redirect()
+                ->back()
+                ->with('error', $exception->errors()['sso'][0] ?? 'Akses aplikasi tidak tersedia.');
         }
-
-        $tenantApplication->load('application');
 
         $this->activityLogger->log(
             $request,
@@ -42,8 +46,8 @@ final class AppAccessController extends Controller
             TenantApplication::class,
             $tenantApplication->id,
             [
-                'tenant_name' => $user->tenant?->name,
-                'application_name' => $tenantApplication->application?->name,
+                'tenant_name' => $context['tenant_name'],
+                'application_name' => $context['application_name'],
                 'instance_url' => $tenantApplication->instance_url,
             ]
         );

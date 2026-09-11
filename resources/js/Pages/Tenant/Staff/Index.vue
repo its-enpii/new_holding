@@ -183,7 +183,7 @@ function destroy(user) {
             </AppCard>
 
             <!-- Reset Password Modal -->
-            <AppModal :open="resetModalOpen" :title="`Reset Password - ${resetTargetUser?.name || 'Staff'}`" @close="resetModalOpen = false">
+            <AppModal v-model="resetModalOpen" :title="`Reset Password - ${resetTargetUser?.name || 'Staff'}`" @close="resetModalOpen = false">
                 <form class="space-y-4" @submit.prevent="submitResetPassword">
                     <p class="text-xs text-on-surface-variant">
                         Masukkan password baru untuk akun <span class="font-semibold text-on-surface">{{ resetTargetUser?.email }}</span>.

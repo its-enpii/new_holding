@@ -32,9 +32,10 @@ final class DashboardController extends Controller
                 ->with(['application', 'tenant'])
                 ->orderByDesc('expired_at')
                 ->get();
-            $alerts = $expiringLicenses
-                ->map(fn (TenantApplication $license) => $this->licenseAlert($license, 'expiring'))
-                ->merge($expiredLicenses->map(fn (TenantApplication $license) => $this->licenseAlert($license, 'expired')))
+            $alerts = collect([
+                ...$expiringLicenses->map(fn (TenantApplication $license) => $this->licenseAlert($license, 'expiring'))->all(),
+                ...$expiredLicenses->map(fn (TenantApplication $license) => $this->licenseAlert($license, 'expired'))->all(),
+            ])
                 ->take(5)
                 ->values();
 

@@ -174,7 +174,7 @@ function filterByAction(newAction) {
             </AppCard>
 
             <!-- Metadata Dialog -->
-            <AppModal :open="metadataModalOpen" :title="`Detail Metadata - ${selectedMetadata?.action}`" @close="metadataModalOpen = false">
+            <AppModal v-model="metadataModalOpen" :title="`Detail Metadata - ${selectedMetadata?.action}`" @close="metadataModalOpen = false">
                 <div class="space-y-3">
                     <div class="text-xs text-on-surface-variant">
                         <p><span class="font-semibold text-on-surface">Pengguna:</span> {{ selectedMetadata?.user }}</p>

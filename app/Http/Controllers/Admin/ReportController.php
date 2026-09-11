@@ -38,7 +38,7 @@ final class ReportController extends Controller
             'type' => ['required', 'string', 'in:balance_sheet,income_statement,cash_flow,equity_changes,calk'],
             'year' => ['required', 'integer', 'min:2000', 'max:2100'],
             'month' => ['nullable', 'integer', 'min:1', 'max:12'],
-            'force' => ['nullable', 'boolean'],
+            'force' => ['nullable'],
         ]);
 
         $filters = [
@@ -46,8 +46,8 @@ final class ReportController extends Controller
             'apps' => array_map(intval(...), $validated['apps']),
             'type' => $validated['type'],
             'year' => (int) $validated['year'],
-            'month' => isset($validated['month']) ? (int) $validated['month'] : null,
-            'force' => (bool) ($validated['force'] ?? false),
+            'month' => isset($validated['month']) && $validated['month'] !== '' ? (int) $validated['month'] : null,
+            'force' => $request->boolean('force'),
         ];
 
         $applications = TenantApplication::query()

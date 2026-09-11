@@ -238,6 +238,37 @@ final class SubsidiaryReportTest extends TestCase
             ->assertInertia(fn ($page) => $page->where('report.appStates', [$application->id => 'offline']));
     }
 
+    public function test_tenant_report_view_accepts_string_boolean_query_parameters(): void
+    {
+        $tenant = Tenant::factory()->create();
+        $user = User::factory()->tenantOwner()->for($tenant)->create();
+        $application = Application::factory()->create();
+        $tenantApplication = TenantApplication::factory()->create([
+            'tenant_id' => $tenant->id,
+            'application_id' => $application->id,
+            'is_active' => true,
+            'expired_at' => now()->addYear(),
+        ]);
+
+        Http::fake([
+            '*' => Http::response($this->balanceSheetPayload(), 200),
+        ]);
+
+        $this->actingAs($user)
+            ->get("/tenant/reports/view?apps[]={$tenantApplication->id}&type=balance_sheet&year=2026&month=&force=false")
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Tenant/Reports/Index')
+                ->has('report.rows'));
+
+        $this->actingAs($user)
+            ->get("/tenant/reports/view?apps[]={$tenantApplication->id}&type=balance_sheet&year=2026&month=&force=true")
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Tenant/Reports/Index')
+                ->has('report.rows'));
+    }
+
     private function balanceSheetPayload(): array
     {
         return [

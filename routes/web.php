@@ -6,7 +6,6 @@ use App\Http\Controllers\Admin\ActivityLogController;
 use App\Http\Controllers\Admin\ApplicationController;
 use App\Http\Controllers\Admin\ReportController as AdminReportController;
 use App\Http\Controllers\Admin\TenantApplicationController;
-use App\Http\Controllers\Admin\TenantApplicationQuickAssignController;
 use App\Http\Controllers\Admin\TenantController;
 use App\Http\Controllers\Admin\TenantSsoController;
 use App\Http\Controllers\AuthController;
@@ -55,8 +54,6 @@ Route::middleware(['auth', 'throttle:web-app'])->group(function (): void {
 
         Route::prefix('tenants/{tenant}')->name('tenants.')->group(function (): void {
             Route::resource('applications', TenantApplicationController::class);
-            Route::post('applications/quick-assign', [TenantApplicationQuickAssignController::class, 'store'])
-                ->name('applications.quick-assign');
             Route::post('applications/{application}/test-connection', [TenantApplicationController::class, 'testConnection'])
                 ->middleware('throttle:6,1')
                 ->name('applications.test-connection');

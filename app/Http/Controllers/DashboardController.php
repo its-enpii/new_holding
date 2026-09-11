@@ -51,15 +51,6 @@ final class DashboardController extends Controller
                         ->where('is_active', true)
                         ->where('expired_at', '<', $now),
                 ])
-                ->with(['tenantApplications' => fn ($query) => $query
-                    ->where('is_active', true)
-                    ->where(fn ($scope) => $scope
-                        ->whereNull('expired_at')
-                        ->orWhere('expired_at', '>', $now))
-                    ->with('application')
-                    ->orderBy('label')
-                    ->orderBy('application_id'),
-                ])
                 ->get();
 
             return Inertia::render('Dashboard', [
@@ -70,15 +61,7 @@ final class DashboardController extends Controller
                     'assignedApps' => TenantApplication::query()->where('is_active', true)->count(),
                 ],
                 'tenantList' => $tenants->map(fn (Tenant $tenant) => $this->tenantListEntry($tenant))->all(),
-                'availableApplications' => Application::query()
-                    ->where('is_active', true)
-                    ->orderBy('name')
-                    ->get(['id', 'name'])
-                    ->map(fn (Application $application) => [
-                        'id' => $application->id,
-                        'name' => $application->name,
-                    ])
-                    ->all(),
+                'applicationList' => $this->applicationList(),
                 'licenseAlerts' => [
                     'items' => $alerts,
                     'total' => $expiringLicenses->count() + $expiredLicenses->count(),
@@ -135,21 +118,36 @@ final class DashboardController extends Controller
             'applications_count' => $tenant->applications_count,
             'expiring_count' => $tenant->expiring_count,
             'expired_count' => $tenant->expired_count,
-            'applications' => $tenant->tenantApplications->map(fn (TenantApplication $tenantApplication) => [
-                'id' => $tenantApplication->id,
-                'label' => $tenantApplication->label,
-                'instance_url' => $tenantApplication->instance_url,
-                'sub_tenant_code' => $tenantApplication->sub_tenant_code,
-                'expired_at' => $tenantApplication->expired_at?->toIso8601String(),
-                'application_name' => $tenantApplication->application?->name,
-                'icon_path' => $tenantApplication->application?->icon_path,
-            ])->all(),
-            'assigned_application_ids' => $tenant->tenantApplications
-                ->where('is_active', true)
-                ->map(fn (TenantApplication $tenantApplication) => $tenantApplication->application_id)
-                ->values()
-                ->all(),
         ];
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function applicationList(): array
+    {
+        return Application::query()
+            ->orderBy('name')
+            ->withCount([
+                'tenantApplications as tenants_using_count',
+                'tenantApplications as active_licenses_count' => fn ($query) => $query->where('is_active', true),
+                'tenantApplications as connected_count' => fn ($query) => $query->where('connection_status', 'connected'),
+                'tenantApplications as connection_issues_count' => fn ($query) => $query->whereIn('connection_status', ['auth_error', 'offline']),
+            ])
+            ->get()
+            ->map(fn (Application $application) => [
+                'id' => $application->id,
+                'name' => $application->name,
+                'slug' => $application->slug,
+                'description' => $application->description,
+                'icon_path' => $application->icon_path,
+                'is_active' => $application->is_active,
+                'tenants_using_count' => $application->tenants_using_count,
+                'active_licenses_count' => $application->active_licenses_count,
+                'connected_count' => $application->connected_count,
+                'connection_issues_count' => $application->connection_issues_count,
+            ])
+            ->all();
     }
 
     /**

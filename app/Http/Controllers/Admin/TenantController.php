@@ -7,7 +7,6 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Tenant\StoreTenantRequest;
 use App\Http\Requests\Tenant\UpdateTenantRequest;
-use App\Models\Application;
 use App\Models\Tenant;
 use App\Services\ActivityLogger;
 use Illuminate\Http\RedirectResponse;
@@ -93,15 +92,6 @@ final class TenantController extends Controller
                     'icon_path' => $tenantApplication->application?->icon_path,
                 ]),
             ],
-            'availableApplications' => Application::query()
-                ->where('is_active', true)
-                ->orderBy('name')
-                ->get(['id', 'name'])
-                ->map(fn (Application $application) => [
-                    'id' => $application->id,
-                    'name' => $application->name,
-                ])
-                ->all(),
         ]);
     }
 

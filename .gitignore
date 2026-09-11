@@ -34,3 +34,6 @@ Thumbs.db
 /.mcp.json
 /boost.json
 /graphify-out/
+e2e/node_modules/
+e2e/artifacts/
+e2e/.cache/

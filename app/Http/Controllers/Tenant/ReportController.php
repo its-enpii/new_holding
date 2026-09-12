@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Tenant;
 use App\Http\Controllers\Controller;
 use App\Models\TenantApplication;
 use App\Services\ActivityLogger;
+use App\Services\ReportBundleService;
 use App\Services\SubsidiaryReportService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
@@ -28,6 +29,7 @@ final class ReportController extends Controller
     public function __construct(
         private readonly SubsidiaryReportService $reportService,
         private readonly ActivityLogger $activityLogger,
+        private readonly ReportBundleService $bundleService,
     ) {}
 
     public function index(Request $request): InertiaResponse
@@ -98,6 +100,25 @@ final class ReportController extends Controller
         ])->setPaper('a4', 'landscape');
 
         return $pdf->stream($this->filename($validated, 'pdf'));
+    }
+
+    public function downloadBundle(Request $request): Response
+    {
+        $validated = $this->validateBundleQuery($request);
+        $applications = $this->selectedApplications($request, $validated['apps']);
+
+        abort_if($applications->isEmpty(), 422, 'Tidak ada aplikasi aktif yang dapat dibundel.');
+
+        $this->activityLogger->log($request, 'export_bundle_report', $request->user(), TenantApplication::class, $applications->first()?->id, [
+            'format' => 'zip',
+            'mode' => $validated['mode'],
+            'reports' => ReportBundleService::REPORT_TYPES,
+            'year' => $validated['year'],
+            'month' => $validated['month'],
+            'apps' => $applications->pluck('id')->all(),
+        ]);
+
+        return $this->bundleService->download($applications, $validated['year'], $validated['month'], $validated['mode'], $validated['force']);
     }
 
     /**
@@ -173,6 +194,29 @@ final class ReportController extends Controller
             'type' => $validated['type'],
             'year' => (int) $validated['year'],
             'month' => isset($validated['month']) && $validated['month'] !== '' ? (int) $validated['month'] : null,
+            'force' => $request->boolean('force'),
+        ];
+    }
+
+    /**
+     * @return array{apps: list<int>, year: int, month: int|null, mode: string, force: bool}
+     */
+    private function validateBundleQuery(Request $request): array
+    {
+        $validated = $request->validate([
+            'apps' => ['required', 'array', 'min:1'],
+            'apps.*' => ['integer'],
+            'year' => ['required', 'integer', 'min:2000', 'max:2100'],
+            'month' => ['nullable', 'integer', 'min:1', 'max:12'],
+            'mode' => ['required', 'string', 'in:'.implode(',', ReportBundleService::ACCEPTED_MODES)],
+            'force' => ['nullable'],
+        ]);
+
+        return [
+            'apps' => array_map(intval(...), $validated['apps']),
+            'year' => (int) $validated['year'],
+            'month' => isset($validated['month']) && $validated['month'] !== '' ? (int) $validated['month'] : null,
+            'mode' => $validated['mode'],
             'force' => $request->boolean('force'),
         ];
     }

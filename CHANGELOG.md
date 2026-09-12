@@ -5,6 +5,15 @@ Semua perubahan penting pada proyek **new_holding** dicatat dalam berkas ini. Fo
 ## [Unreleased]
 
 ### Added
+- **Fitur Download Bundle Laporan Level Holding (`new_holding`)**:
+  - `App\Services\ReportBundleService`: merakit ZIP berisi 5 laporan holding (Neraca, Laba Rugi, Arus Kas, Perubahan Ekuitas, CALK) + `README_Manifest.txt`, dengan penomoran `01_Neraca_{mode}_{periode}.pdf` dst dan pembersihan berkas sementara setelah respons dikirim.
+  - Dua mode penyajian: `gabungan`/`comparative` (kolom berdampingan per unit usaha + kolom **Total Gabungan**, tanpa eliminasi) dan `konsolidasi`/`consolidated` (satu kolom entitas ekonomi tunggal).
+  - Eliminasi konsolidasi atas saldo & transaksi resiprokal antar unit: piutang-utang internal, penyertaan versus modal anak usaha, dan jual-beli internal (beban-pendapatan), termasuk penyesuaian akun induk dan total agregatnya.
+  - Template PDF `resources/views/reports/comparative.blade.php` (kolom Total Gabungan, status unit, footer total) dan baru `reports/consolidated.blade.php` (tabel Kode, Nama Akun, Saldo Konsolidasi, jurnal eliminasi, tema Indigo Ledger).
+  - Route `GET /tenant/reports/bundle` (`tenant.reports.bundle`) dan `GET /admin/reports/bundle` (`admin.reports.bundle`) dengan validasi `apps`, `year`, `month`, `mode` (`in:gabungan,konsolidasi`), `force`.
+  - Tombol "Bundle Gabungan (ZIP)" dan "Bundle Konsolidasi (ZIP)" pada halaman Laporan tenant dan preview admin (`AppButton` compact di action bar).
+  - Activity log `export_bundle_report` (metadata mode, periode, daftar aplikasi).
+  - 12 test feature baru (`tests/Feature/ReportBundleTest.php`) untuk unduhan ZIP, isi arsip 5 PDF + manifest, agregasi & eliminasi konsolidasi, unit offline, isolasi tenant, validasi mode, dan akses admin.
 - **Standardisasi Form Control (`new_holding`)**:
   - Komponen `AppDatePicker` berbasis native date input dengan API konsisten `AppInput`, state error/hint/disabled, batasan `min`/`max`, dan ikon tanggal yang tidak menghalangi picker native.
   - Ganti date input langsung pada Create/Edit lisensi aplikasi menjadi `AppDatePicker`.

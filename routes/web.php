@@ -34,6 +34,7 @@ Route::middleware(['auth', 'throttle:web-app'])->group(function (): void {
         Route::get('/tenant/reports/view', [ReportController::class, 'show'])->name('tenant.reports.show');
         Route::get('/tenant/reports/export/csv', [ReportController::class, 'exportCsv'])->name('tenant.reports.export.csv');
         Route::get('/tenant/reports/export/pdf', [ReportController::class, 'exportPdf'])->name('tenant.reports.export.pdf');
+        Route::get('/tenant/reports/bundle', [ReportController::class, 'downloadBundle'])->name('tenant.reports.bundle');
         Route::post('/app/{tenantApplication}/access', [AppAccessController::class, 'access'])
             ->middleware('throttle:app.access')
             ->name('app.access');
@@ -70,5 +71,6 @@ Route::middleware(['auth', 'throttle:web-app'])->group(function (): void {
         Route::get('/activity-logs', [ActivityLogController::class, 'index'])->name('activity-logs.index');
         Route::get('/reports', [AdminReportController::class, 'index'])->name('reports.index');
         Route::get('/reports/view', [AdminReportController::class, 'show'])->name('reports.show');
+        Route::get('/reports/bundle', [AdminReportController::class, 'downloadBundle'])->name('reports.bundle');
     });
 });

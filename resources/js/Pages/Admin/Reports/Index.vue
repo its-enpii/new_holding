@@ -34,6 +34,18 @@ watch(() => form.value.tenant_id, () => {
     router.get(route('admin.reports.index'), { tenant_id: form.value.tenant_id }, { preserveState: true });
 });
 
+const canBundle = computed(() => Boolean(form.value.tenant_id) && form.value.apps.length > 0);
+
+function bundleHref(mode) {
+    return route('admin.reports.bundle', {
+        tenant_id: form.value.tenant_id,
+        apps: form.value.apps,
+        year: form.value.year,
+        month: form.value.month || null,
+        mode,
+    });
+}
+
 function submit(force = false) {
     router.get(route('admin.reports.show'), {
         tenant_id: form.value.tenant_id,
@@ -54,6 +66,10 @@ function submit(force = false) {
                 <div>
                     <h1 class="text-xl font-semibold text-on-surface">Preview Laporan Tenant</h1>
                     <p class="text-sm text-on-surface-variant">Tinjau laporan lintas aplikasi pada tenant terpilih.</p>
+                </div>
+                <div class="flex flex-wrap items-center justify-end gap-2">
+                    <AppButton variant="secondary" size="compact" icon="folder_zip" :disabled="!canBundle" :href="bundleHref('gabungan')">Bundle Gabungan (ZIP)</AppButton>
+                    <AppButton variant="secondary" size="compact" icon="inventory_2" :disabled="!canBundle" :href="bundleHref('konsolidasi')">Bundle Konsolidasi (ZIP)</AppButton>
                 </div>
             </template>
             <div class="grid gap-4 md:grid-cols-4">

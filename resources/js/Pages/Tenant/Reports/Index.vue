@@ -28,6 +28,15 @@ const monthOptions = computed(() => [
 ]);
 const hasSelection = computed(() => form.value.apps.length > 0);
 
+function bundleHref(mode) {
+    return route('tenant.reports.bundle', {
+        apps: form.value.apps,
+        year: form.value.year,
+        month: form.value.month || null,
+        mode,
+    });
+}
+
 function submit(force = false) {
     router.get(route('tenant.reports.show'), {
         apps: form.value.apps,
@@ -48,9 +57,11 @@ function submit(force = false) {
                     <h1 class="text-xl font-semibold text-on-surface">Laporan Konsolidasi</h1>
                     <p class="text-sm text-on-surface-variant">Bandingkan laporan keuangan antar aplikasi subsidiary.</p>
                 </div>
-                <div class="flex gap-2">
-                    <AppButton variant="secondary" icon="download" :disabled="!hasSelection || !report" :href="route('tenant.reports.export.csv', { apps: form.apps, type: form.type, year: form.year, month: form.month || null })">CSV</AppButton>
-                    <AppButton variant="secondary" icon="picture_as_pdf" :disabled="!hasSelection || !report" :href="route('tenant.reports.export.pdf', { apps: form.apps, type: form.type, year: form.year, month: form.month || null })">PDF</AppButton>
+                <div class="flex flex-wrap items-center justify-end gap-2">
+                    <AppButton variant="secondary" size="compact" icon="download" :disabled="!hasSelection || !report" :href="route('tenant.reports.export.csv', { apps: form.apps, type: form.type, year: form.year, month: form.month || null })">CSV</AppButton>
+                    <AppButton variant="secondary" size="compact" icon="picture_as_pdf" :disabled="!hasSelection || !report" :href="route('tenant.reports.export.pdf', { apps: form.apps, type: form.type, year: form.year, month: form.month || null })">PDF</AppButton>
+                    <AppButton variant="secondary" size="compact" icon="folder_zip" :disabled="!hasSelection" :href="bundleHref('gabungan')">Bundle Gabungan (ZIP)</AppButton>
+                    <AppButton variant="secondary" size="compact" icon="inventory_2" :disabled="!hasSelection" :href="bundleHref('konsolidasi')">Bundle Konsolidasi (ZIP)</AppButton>
                 </div>
             </template>
             <div class="grid gap-4 md:grid-cols-4">

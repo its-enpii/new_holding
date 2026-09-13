@@ -4,6 +4,7 @@ import { Link, router, usePage } from '@inertiajs/vue3';
 import AppConfirmDialog from '../Components/AppConfirmDialog.vue';
 import AppIcon from '../Components/AppIcon.vue';
 import AppIconButton from '../Components/AppIconButton.vue';
+import AppOfflineBanner from '../Components/AppOfflineBanner.vue';
 import AppToast from '../Components/AppToast.vue';
 import { useTheme } from '../Composables/useTheme';
 
@@ -91,6 +92,7 @@ function logout() {
         <main class="p-4 sm:p-6 lg:ml-64 lg:p-8">
             <slot />
         </main>
+        <AppOfflineBanner />
         <AppConfirmDialog />
         <AppToast />
     </div>

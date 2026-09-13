@@ -35,11 +35,12 @@ function onNetworkError(event) {
 async function reconnect() {
     isChecking.value = true;
     try {
-        const res = await fetch(`/desktop/sync/status?_t=${Date.now()}`, {
+        const response = await fetch(`/up?_t=${Date.now()}`, {
             method: 'GET',
             cache: 'no-store',
         });
-        if (res.ok) {
+
+        if (response.ok) {
             onOnline();
         } else {
             isOffline.value = true;
@@ -84,9 +85,9 @@ onUnmounted(() => {
                 <div class="flex items-center gap-3">
                     <AppIcon name="wifi_off" tone="warning" container-size="9" container-shape="pill" class="shrink-0" />
                     <div class="min-w-0">
-                        <p class="text-xs font-bold sm:text-sm">Mode Offline — Input Diizinkan</p>
+                        <p class="text-xs font-bold sm:text-sm">Koneksi Terputus</p>
                         <p class="truncate text-[11px] opacity-90 sm:text-xs">
-                            {{ customMessage || 'Data tetap dapat dibaca & dicetak dari database lokal. Fitur penambahan/perubahan data dinonaktifkan.' }}
+                            {{ customMessage || 'Akses data lokal tetap berjalan. Sinkronisasi dan permintaan live ke subsidiary dijeda.' }}
                         </p>
                     </div>
                 </div>
@@ -96,10 +97,10 @@ onUnmounted(() => {
                         size="compact"
                         icon="refresh"
                         :loading="isChecking"
-                        aria-label="Cek koneksi server"
+                        aria-label="Cek koneksi server holding"
                         @click="reconnect"
                     >
-                        Cek Server
+                        Cek Koneksi
                     </AppButton>
                 </div>
             </div>

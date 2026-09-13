@@ -208,7 +208,7 @@ test('tenant owner manages staff while role boundaries stay enforced', async ({ 
   await logout(page);
   await login(page, 'owner@tenant.test');
   await page.goto('/admin/activity-logs');
-  await expect(page.getByText('Akses ditolak')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Akses Ditolak' })).toBeVisible();
 
   await page.goto('/tenant/staff');
 
@@ -269,7 +269,7 @@ test('application routes enforce rate limits and branded errors', async ({ page,
   const response = await page.request.get('/this-page-does-not-exist');
   expect(response.status()).toBe(404);
   await page.goto('/this-page-does-not-exist');
-  await expect(page.getByText('Halaman tidak ditemukan')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Halaman Tidak Ditemukan' })).toBeVisible();
 });
 
 test('expired licenses and foreign tenant applications are inaccessible', async ({ page }) => {
@@ -281,7 +281,7 @@ test('expired licenses and foreign tenant applications are inaccessible', async 
   const foreignResponse = await page.request.get(`/admin/tenants/${foreignTenantId}/applications/${foreignLicenseId}`);
   expect(foreignResponse.status()).toBe(403);
   await page.goto(`/admin/tenants/${foreignTenantId}/applications/${foreignLicenseId}`);
-  await expect(page.getByText('Akses ditolak')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Akses Ditolak' })).toBeVisible();
 
   await page.goto('/dashboard');
   const card = page.locator('.rounded-lg.border').filter({ hasText: `QA Expired App ${timestamp}` });

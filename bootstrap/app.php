@@ -3,6 +3,7 @@
 use App\Http\Middleware\EnsureUserHasRole;
 use App\Http\Middleware\HandleInertiaRequests;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Contracts\View\Factory as ViewFactory;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -37,19 +38,42 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $exceptions->respond(function (Response $response, Throwable $exception, Request $request): Response {
             $isHtmlRequest = ! $request->is('api/*') && ! $request->expectsJson();
+            $statusCode = $response->getStatusCode();
+            $handledErrorStatuses = [401, 403, 404, 419, 429, 500, 503];
 
-            if (! $isHtmlRequest || ! in_array($response->getStatusCode(), [403, 404, 419, 429, 500], true)) {
+            if (! $isHtmlRequest || ! in_array($statusCode, $handledErrorStatuses, true)) {
                 return $response;
             }
 
-            $page = 'Errors/'.$response->getStatusCode();
+            $bladeView = "errors.{$statusCode}";
+            $page = "Errors/{$statusCode}";
+
+            if ($request->header('X-Inertia') === 'false') {
+                $viewFactory = app(ViewFactory::class);
+
+                if ($viewFactory->exists($bladeView)) {
+                    return response()->view($bladeView, [], $statusCode);
+                }
+            }
 
             if (! is_file(resource_path("js/Pages/{$page}.vue"))) {
                 return $response;
             }
 
-            return Inertia::render($page, ['status' => $response->getStatusCode()])
-                ->toResponse($request)
-                ->setStatusCode($response->getStatusCode());
+            try {
+                return Inertia::render($page, ['status' => $statusCode])
+                    ->toResponse($request)
+                    ->setStatusCode($statusCode);
+            } catch (Throwable $renderException) {
+                report($renderException);
+
+                $viewFactory = app(ViewFactory::class);
+
+                if ($viewFactory->exists($bladeView)) {
+                    return response()->view($bladeView, [], $statusCode);
+                }
+
+                return $response;
+            }
         });
     })->create();

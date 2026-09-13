@@ -4,6 +4,19 @@ Semua perubahan penting pada proyek **new_holding** dicatat dalam berkas ini. Fo
 
 ## [Unreleased]
 
+### Added
+- **PWA (Progressive Web App) & Offline Handling (`new_holding`)**:
+  - `public/manifest.webmanifest` & ikon standar (`icon-192.png`, `icon-512.png`) dengan tema Indigo Ledger.
+  - `public/sw.js`: Service worker yang meng-cache shell dasar dan fallback navigasi ke `offline.html` saat jaringan terputus.
+  - `public/offline.html`: Halaman offline mandiri bertema Indigo Ledger dengan tombol coba lagi.
+  - `AppOfflineBanner.vue`: Warning banner mengambang saat koneksi offline terpasang di `AdminLayout.vue` dengan tombol cek koneksi ke endpoint `/up`.
+  - Registrasi Service Worker di `resources/js/app.js` pada mode produksi dan meta tags PWA di `resources/views/app.blade.php`.
+- **Branded Error Pages Bebas Default Laravel**:
+  - Halaman error Inertia: `401.vue` dan `503.vue` baru, serta pembaruan visual kaya pada `ErrorPage.vue` dengan token tema Indigo Ledger.
+  - Server-side Blade error views di `resources/views/errors/` (`layout.blade.php`, `401`, `403`, `404`, `419`, `429`, `500`, `503.blade.php`) untuk fallback non-Inertia dan kegagalan fatal rendering.
+  - Exception handler di `bootstrap/app.php` menangani seluruh kode status 401, 403, 404, 419, 429, 500, 503 dengan fallback bertingkat Inertia -> Blade.
+  - 6 test feature baru (`tests/Feature/PwaAndErrorPagesTest.php`) mencakup manifest, service worker, offline shell, error Inertia, Blade fallback, dan kegagalan render.
+
 ### Changed
 - **Refactor Raw HTML ke Komponen Desain Sistem (`new_holding`)**:
   - Ganti raw `<button>` Quick Access di `Tenant/Dashboard.vue` dan pembungkus kartu manual dengan `<AppButton>` dan `<AppCard>`.

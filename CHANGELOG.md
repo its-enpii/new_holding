@@ -4,6 +4,13 @@ Semua perubahan penting pada proyek **new_holding** dicatat dalam berkas ini. Fo
 
 ## [Unreleased]
 
+### Changed
+- **Refactor Raw HTML ke Komponen Desain Sistem (`new_holding`)**:
+  - Ganti raw `<button>` Quick Access di `Tenant/Dashboard.vue` dan pembungkus kartu manual dengan `<AppButton>` dan `<AppCard>`.
+  - Ganti raw `<button>` Detail metadata di `Admin/ActivityLogs/Index.vue` dengan `<AppButton variant="outline" size="compact">`.
+  - Ganti raw `<input type="file">` di `Components/CsvImportExport.vue` dengan `<AppFileUpload>`.
+  - Sinkronisasi selektor kartu pada suite Playwright E2E (`e2e/deep-functional.spec.js`) agar mengenali pembungkus komponen `AppCard`.
+
 ### Added
 - **Fitur Download Bundle Laporan Level Holding (`new_holding`)**:
   - `App\Services\ReportBundleService`: merakit ZIP berisi 5 laporan holding (Neraca, Laba Rugi, Arus Kas, Perubahan Ekuitas, CALK) + `README_Manifest.txt`, dengan penomoran `01_Neraca_{mode}_{periode}.pdf` dst dan pembersihan berkas sementara setelah respons dikirim.

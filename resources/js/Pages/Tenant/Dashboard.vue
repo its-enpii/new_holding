@@ -50,10 +50,10 @@ function accessApp(app) {
             </div>
 
             <div v-else class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                <div
+                <AppCard
                     v-for="app in applications"
                     :key="app.id"
-                    class="group relative flex flex-col justify-between rounded-lg border border-outline-variant/60 bg-surface-container-low p-5 shadow-xs transition duration-200 hover:border-primary/50 hover:shadow-md dark:border-outline-variant/30 dark:bg-surface-container-low"
+                    class="group flex flex-col justify-between border border-outline-variant/60 transition hover:border-primary/50 hover:shadow-md"
                 >
                     <!-- Header with Icon & Status -->
                     <div>
@@ -98,19 +98,19 @@ function accessApp(app) {
                                 Aplikasi dinonaktifkan oleh vendor.
                             </p>
                         </div>
-                        <button
+                        <AppButton
                             v-else
-                            type="button"
+                            variant="primary"
+                            class="w-full"
                             :disabled="accessingId === app.id"
-                            class="w-full flex items-center justify-center gap-2 rounded-md bg-gradient-to-r from-primary via-primary-deep to-primary-container px-4 py-2.5 text-sm font-semibold text-on-primary shadow-sm transition hover:opacity-95 focus:outline-hidden focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 cursor-pointer"
+                            :loading="accessingId === app.id"
+                            icon="launch"
                             @click="accessApp(app)"
                         >
-                            <AppIcon v-if="accessingId === app.id" name="progress_activity" class="animate-spin" />
-                            <AppIcon v-else name="launch" />
-                            <span>{{ accessingId === app.id ? 'Mengarahkan...' : 'Quick Access' }}</span>
-                        </button>
+                            Quick Access
+                        </AppButton>
                     </div>
-                </div>
+                </AppCard>
             </div>
         </div>
     </AdminLayout>

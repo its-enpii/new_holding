@@ -2,6 +2,7 @@
 import { ref } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import AppButton from './AppButton.vue';
+import AppFileUpload from './AppFileUpload.vue';
 import AppModal from './AppModal.vue';
 
 const props = defineProps({
@@ -13,7 +14,6 @@ const props = defineProps({
 });
 
 const open = ref(false);
-const fileInput = ref(null);
 const form = useForm({ file: null });
 
 function exportCsv() {
@@ -26,9 +26,8 @@ function openImport() {
     open.value = true;
 }
 
-function onFileChange(event) {
-    const file = event.target.files?.[0] ?? null;
-    form.file = file;
+function onFileChange(file) {
+    form.file = file instanceof File ? file : null;
 }
 
 function submitImport() {
@@ -38,7 +37,6 @@ function submitImport() {
         onSuccess: () => {
             open.value = false;
             form.reset();
-            if (fileInput.value) fileInput.value.value = '';
         },
     });
 }
@@ -56,17 +54,13 @@ function submitImport() {
             <p class="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Kolom header</p>
             <p class="mt-2 font-mono text-sm text-primary">{{ columns.join(';') }}</p>
         </div>
-        <label class="block space-y-2">
-            <span class="ml-1 text-sm font-bold uppercase tracking-wider text-primary">File CSV</span>
-            <input
-                ref="fileInput"
-                type="file"
-                accept=".csv,text/csv,application/vnd.ms-excel"
-                class="block w-full rounded-xl border border-outline-variant bg-surface-container-lowest px-4 py-3 text-sm text-primary file:mr-3 file:rounded-lg file:border-0 file:bg-primary file:px-3 file:py-2 file:text-sm file:font-bold file:text-on-primary"
-                @change="onFileChange"
-            />
-            <p v-if="form.errors.file" class="text-sm text-error">{{ form.errors.file }}</p>
-        </label>
+        <AppFileUpload
+            :model-value="form.file"
+            label="File CSV"
+            accept=".csv,text/csv,application/vnd.ms-excel"
+            :error="form.errors.file"
+            @update:model-value="onFileChange"
+        />
         <template #footer>
             <AppButton variant="secondary" :disabled="form.processing" @click="open = false">Batal</AppButton>
             <AppButton :loading="form.processing" :disabled="!form.file" icon="upload" @click="submitImport">Impor</AppButton>

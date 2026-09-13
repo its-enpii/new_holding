@@ -5,7 +5,6 @@ import AdminLayout from '../../../Layouts/AdminLayout.vue';
 import AppBadge from '../../../Components/AppBadge.vue';
 import AppButton from '../../../Components/AppButton.vue';
 import AppCard from '../../../Components/AppCard.vue';
-import AppIcon from '../../../Components/AppIcon.vue';
 import AppModal from '../../../Components/AppModal.vue';
 import AppSelect from '../../../Components/AppSelect.vue';
 import SmartDataTable from '../../../Components/SmartDataTable.vue';
@@ -158,15 +157,15 @@ function filterByAction(newAction) {
                         </template>
 
                         <template #cell-metadata="{ row }">
-                            <button
+                            <AppButton
                                 v-if="row.metadata"
-                                type="button"
-                                class="inline-flex items-center gap-1 text-xs text-primary underline hover:text-primary-deep cursor-pointer"
+                                variant="outline"
+                                size="compact"
+                                icon="info"
                                 @click="showMetadata(row)"
                             >
-                                <AppIcon name="info" class="text-xs" />
-                                <span>Detail</span>
-                            </button>
+                                Detail
+                            </AppButton>
                             <span v-else class="text-xs text-on-surface-variant">—</span>
                         </template>
                     </SmartDataTable>

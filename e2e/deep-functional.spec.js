@@ -284,7 +284,7 @@ test('expired licenses and foreign tenant applications are inaccessible', async 
   await expect(page.getByText('Akses ditolak')).toBeVisible();
 
   await page.goto('/dashboard');
-  const card = page.locator('div.rounded-lg.border').filter({ hasText: `QA Expired App ${timestamp}` });
+  const card = page.locator('.rounded-lg.border').filter({ hasText: `QA Expired App ${timestamp}` });
   await expect(card.getByText('Masa aktif lisensi telah habis.')).toBeVisible();
   await expect(card.getByRole('button')).toHaveCount(0);
 });

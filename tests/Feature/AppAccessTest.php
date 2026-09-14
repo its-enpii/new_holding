@@ -10,11 +10,20 @@ use App\Models\Tenant;
 use App\Models\TenantApplication;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 
 final class AppAccessTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->useInMemorySsoStore();
+        config(['services.holding_sso.secret' => null]);
+    }
 
     public function test_tenant_user_can_quick_access_active_app_and_gets_redirected_away(): void
     {
@@ -32,7 +41,31 @@ final class AppAccessTest extends TestCase
 
         $response = $this->actingAs($user)->post(route('app.access', $tenantApp));
 
-        $response->assertRedirect('https://pos.desa.test/app');
+        $target = $response->headers->get('Location');
+        parse_str((string) parse_url($target, PHP_URL_QUERY), $query);
+
+        $this->assertSame(
+            'https://pos.desa.test/app/auth/holding?token='.urlencode($query['token']),
+            $target
+        );
+        $this->assertMatchesRegularExpression('/^[0-9a-f]{64}$/', $query['token']);
+        $this->assertSame(
+            [
+                'tenant_application_id' => $tenantApp->id,
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'name' => $user->name,
+                'role' => $user->role,
+                'tenant_name' => $tenant->name,
+                'sub_tenant_code' => $tenantApp->sub_tenant_code,
+                'exp' => now()->addMinute()->timestamp,
+            ],
+            Cache::store('sso')->get('sso:'.hash('sha256', $query['token']))
+        );
+        $this->assertNull(
+            Cache::get('sso:'.hash('sha256', $query['token'])),
+            'The default cache store must never receive an SSO token.'
+        );
 
         $this->assertDatabaseHas('activity_logs', [
             'tenant_id' => $tenant->id,

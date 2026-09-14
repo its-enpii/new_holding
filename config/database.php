@@ -179,6 +179,26 @@ return [
             'backoff_cap' => env('REDIS_BACKOFF_CAP', 1000),
         ],
 
+        /*
+         | Shared SSO token bus. Coordinates are 100% environment driven so the
+         | same build runs on a shared server (127.0.0.1:6380) or against a
+         | remote holding host. The empty connection prefix keeps Redis keys
+         | readable by every application on the bus.
+         */
+        'sso' => [
+            'url' => env('SSO_REDIS_URL'),
+            'host' => env('SSO_REDIS_HOST', '127.0.0.1'),
+            'username' => env('SSO_REDIS_USERNAME'),
+            'password' => env('SSO_REDIS_PASSWORD', ''),
+            'port' => env('SSO_REDIS_PORT', '6380'),
+            'database' => env('SSO_REDIS_DB', '0'),
+            'prefix' => env('SSO_REDIS_PREFIX', ''),
+            'max_retries' => env('REDIS_MAX_RETRIES', 3),
+            'backoff_algorithm' => env('REDIS_BACKOFF_ALGORITHM', 'decorrelated_jitter'),
+            'backoff_base' => env('REDIS_BACKOFF_BASE', 100),
+            'backoff_cap' => env('REDIS_BACKOFF_CAP', 1000),
+        ],
+
     ],
 
 ];

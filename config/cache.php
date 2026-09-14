@@ -84,6 +84,20 @@ return [
             'lock_connection' => env('REDIS_CACHE_LOCK_CONNECTION', 'default'),
         ],
 
+        /*
+         | Dedicated, cross-application store for one-time SSO tokens. The
+         | holding portal writes here and every subsidiary application reads
+         | from it, so both sides must point at the same Redis server and use
+         | the same (empty by default) key prefix: the contract key is exactly
+         | "sso:{sha256(token)}" with no application prefix.
+         */
+        'sso' => [
+            'driver' => 'redis',
+            'connection' => env('SSO_CACHE_REDIS_CONNECTION', 'sso'),
+            'lock_connection' => env('SSO_CACHE_LOCK_CONNECTION', 'sso'),
+            'prefix' => env('SSO_CACHE_PREFIX', ''),
+        ],
+
         'dynamodb' => [
             'driver' => 'dynamodb',
             'key' => env('AWS_ACCESS_KEY_ID'),

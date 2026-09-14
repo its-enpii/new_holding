@@ -21,8 +21,8 @@ final class HoldingSsoFeatureTest extends TestCase
     {
         parent::setUp();
 
+        $this->useInMemorySsoStore();
         config(['services.holding_sso.secret' => null]);
-        Cache::flush();
     }
 
     public function test_superadmin_exchanges_one_time_token_and_redirects_to_instance(): void
@@ -51,18 +51,23 @@ final class HoldingSsoFeatureTest extends TestCase
         $response->assertRedirect();
         $this->assertSame('https://sidbm.test/auth/holding?token='.urlencode($query['token']), $target);
         $this->assertSame(64, strlen($query['token']));
+        $expectedPayload = [
+            'tenant_application_id' => $tenantApplication->id,
+            'user_id' => $superadmin->id,
+            'email' => $superadmin->email,
+            'name' => $superadmin->name,
+            'role' => $superadmin->role,
+            'tenant_name' => $tenant->name,
+            'sub_tenant_code' => null,
+            'exp' => now()->addMinute()->timestamp,
+        ];
         $this->assertSame(
-            [
-                'tenant_application_id' => $tenantApplication->id,
-                'user_id' => $superadmin->id,
-                'email' => $superadmin->email,
-                'name' => $superadmin->name,
-                'role' => $superadmin->role,
-                'tenant_name' => $tenant->name,
-                'sub_tenant_code' => null,
-                'exp' => now()->addMinute()->timestamp,
-            ],
-            Cache::get('sso:'.hash('sha256', $query['token']))
+            $expectedPayload,
+            Cache::store('sso')->get('sso:'.hash('sha256', $query['token']))
+        );
+        $this->assertNull(
+            Cache::get('sso:'.hash('sha256', $query['token'])),
+            'The default cache store must never receive an SSO token.'
         );
         $this->assertDatabaseHas('activity_logs', [
             'user_id' => $superadmin->id,
@@ -78,10 +83,11 @@ final class HoldingSsoFeatureTest extends TestCase
         parse_str($secondToken, $secondQuery);
 
         $this->assertNotSame($query['token'], $secondQuery['token']);
-        $this->assertNotNull(Cache::get('sso:'.hash('sha256', $secondQuery['token'])));
-        $firstTokenKey = hash('sha256', $query['token']);
-        Cache::forget("sso:{$firstTokenKey}");
-        $this->assertNull(Cache::get("sso:{$firstTokenKey}"));
+        $this->assertNotNull(Cache::store('sso')->get('sso:'.hash('sha256', $secondQuery['token'])));
+
+        $consumed = Cache::store('sso')->pull('sso:'.hash('sha256', $query['token']));
+        $this->assertSame($expectedPayload, $consumed);
+        $this->assertNull(Cache::store('sso')->get('sso:'.hash('sha256', $query['token'])));
     }
 
     public function test_owner_exchanges_token_only_for_own_tenant(): void
@@ -139,7 +145,7 @@ final class HoldingSsoFeatureTest extends TestCase
 
         $this->assertTrue($firstResponse->isRedirection());
         $this->assertTrue($secondResponse->isRedirection());
-        $this->assertFalse(Cache::has('anything'));
+        $this->assertFalse(Cache::store('sso')->has('anything'));
         $this->assertSame(0, ActivityLog::query()->where('action', 'sso_exchange')->count());
     }
 
@@ -147,16 +153,15 @@ final class HoldingSsoFeatureTest extends TestCase
     {
         $token = 'expired-token';
         $cacheKey = 'sso:'.hash('sha256', $token);
-        Cache::put(
+        Cache::store('sso')->put(
             $cacheKey,
             ['exp' => now()->subMinute()->timestamp],
             now()->addMinute()
         );
 
-        $payload = Cache::get($cacheKey);
+        $payload = Cache::store('sso')->pull($cacheKey);
 
         $this->assertLessThan(now()->timestamp, $payload['exp']);
-        Cache::forget($cacheKey);
-        $this->assertNull(Cache::get($cacheKey));
+        $this->assertNull(Cache::store('sso')->get($cacheKey));
     }
 }

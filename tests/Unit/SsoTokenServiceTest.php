@@ -16,10 +16,21 @@ final class SsoTokenServiceTest extends TestCase
 {
     use RefreshDatabase;
 
+    /**
+     * The dedicated "sso" store is swapped for an array store so the test
+     * suite never talks to the shared Redis token bus.
+     */
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->useInMemorySsoStore();
+    }
+
     public function test_creates_one_time_payload_and_hashed_cache_entry(): void
     {
         config(['services.holding_sso.secret' => null]);
-        Cache::flush();
+        Cache::store('sso')->flush();
 
         $tenant = Tenant::factory()->create(['name' => 'BUMDesma Contoh']);
         $tenantApplication = TenantApplication::factory()->for($tenant)->create([
@@ -36,7 +47,11 @@ final class SsoTokenServiceTest extends TestCase
         $this->assertNotSame($first['token'], $second['token']);
         $this->assertSame(
             $first['payload'],
-            Cache::get('sso:'.hash('sha256', $first['token']))
+            Cache::store('sso')->get('sso:'.hash('sha256', $first['token']))
+        );
+        $this->assertNull(
+            Cache::get('sso:'.hash('sha256', $first['token'])),
+            'The default store must never receive an SSO token.'
         );
         $this->assertSame($tenantApplication->id, $first['payload']['tenant_application_id']);
         $this->assertSame($user->id, $first['payload']['user_id']);
@@ -50,15 +65,35 @@ final class SsoTokenServiceTest extends TestCase
         $this->assertArrayNotHasKey('signature', $first['payload']);
 
         $firstTokenCacheKey = 'sso:'.hash('sha256', $first['token']);
-        Cache::forget($firstTokenCacheKey);
+        Cache::store('sso')->forget($firstTokenCacheKey);
 
-        $this->assertNull(Cache::get($firstTokenCacheKey));
+        $this->assertNull(Cache::store('sso')->get($firstTokenCacheKey));
+        $this->assertNull(Cache::store('sso')->pull($firstTokenCacheKey));
+    }
+
+    public function test_token_expires_after_sixty_seconds(): void
+    {
+        config(['services.holding_sso.secret' => null]);
+        Cache::store('sso')->flush();
+
+        $tenantApplication = TenantApplication::factory()->create();
+        $user = User::factory()->superadmin()->create();
+
+        $token = app(SsoTokenService::class)->create($tenantApplication, $user)['token'];
+        $cacheKey = 'sso:'.hash('sha256', $token);
+
+        $this->assertNotNull(Cache::store('sso')->get($cacheKey));
+
+        $this->travel(61)->seconds();
+
+        $this->assertNull(Cache::store('sso')->get($cacheKey));
+        $this->assertNull(Cache::store('sso')->pull($cacheKey));
     }
 
     public function test_adds_hmac_signature_when_secret_is_set(): void
     {
         config(['services.holding_sso.secret' => 'shared-secret']);
-        Cache::flush();
+        Cache::store('sso')->flush();
 
         $tenantApplication = TenantApplication::factory()->create();
         $user = User::factory()->superadmin()->create();
@@ -77,7 +112,7 @@ final class SsoTokenServiceTest extends TestCase
     public function test_includes_null_sub_tenant_code_for_contract_stability(): void
     {
         config(['services.holding_sso.secret' => null]);
-        Cache::flush();
+        Cache::store('sso')->flush();
 
         $tenantApplication = TenantApplication::factory()->create();
         $user = User::factory()->superadmin()->create();

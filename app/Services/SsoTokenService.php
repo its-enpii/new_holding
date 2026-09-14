@@ -46,7 +46,7 @@ final class SsoTokenService
             $payload['signature'] = hash_hmac('sha256', json_encode($payload), $secret);
         }
 
-        Cache::put(
+        Cache::store('sso')->put(
             "sso:{$tokenHash}",
             $payload,
             $expiresAt

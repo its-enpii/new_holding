@@ -1,0 +1,58 @@
+# Files excluded from the Docker build context. Smaller context = faster
+# `docker compose build` and reliable layer caching. The runtime image
+# bind-mounts the host tree, so what really matters is what npm/composer need
+# at build time.
+
+.git
+.gitignore
+.dockerignore
+
+# Env files never enter the image; .env is injected by compose from the host.
+.env
+.env.*
+!.env.example
+
+# Dependencies (installed by the entrypoint / npm stage, not baked in).
+vendor
+node_modules
+
+# Laravel runtime artefacts.
+storage/logs/*
+storage/framework/cache/*
+storage/framework/views/*
+storage/framework/sessions/*
+bootstrap/cache/*
+database/*.sqlite
+database/*.sqlite-journal
+public/hot
+public/build
+public/storage
+test-results/
+
+# Test & tooling caches / local-only artefacts.
+.phpunit.cache
+.phpunit.result.cache
+e2e/node_modules
+e2e/artifacts
+e2e/.cache
+.claude
+.codex
+.mcp.json
+boost.json
+graphify-out/
+
+# Docs not needed in the image.
+docs
+CHANGELOG.md
+README.md
+AGENT.md
+AGENTS.md
+CLAUDE.md
+
+# Editor / OS junk.
+.idea
+.vscode
+*.swp
+*.log
+.DS_Store
+Thumbs.db

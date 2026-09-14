@@ -1,0 +1,200 @@
+# Holding portal stack.
+#
+#   app        PHP-FPM runtime (source + vendor + .env bind-mounted from host)
+#   queue      `artisan queue:work` on the database driver (MySQL)
+#   nginx      public entrypoint on ${APP_PORT:-8092}
+#   mysql      portal database (sessions/cache/queues/jobs live here)
+#   redis      portal-owned cache/session redis
+#   redis-sso  CENTRAL SSO TOKEN BUS shared with subsidiary applications
+#
+# Deployment-agnostic rule: no application code may reference docker service
+# names. Only this file maps coordinates to services, and every mapping is an
+# overridable `${VAR:-default}`, so the same image runs unchanged when the
+# portal and its subsidiaries live on different servers (see docs/SSO-CONTRACT.md
+# "Shared SSO Cache" for the two deployment modes).
+
+services:
+  app:
+    build:
+      context: .
+      args:
+        UID: ${APP_UID:-1000}
+        GID: ${APP_GID:-1000}
+    image: new_holding-app
+    working_dir: /var/www/html
+    restart: unless-stopped
+    volumes:
+      - .:/var/www/html
+    environment:
+      APP_ENV: ${APP_ENV:-local}
+      APP_DEBUG: ${APP_DEBUG:-true}
+      APP_URL: ${APP_URL:-http://localhost:8092}
+      DB_CONNECTION: mysql
+      DB_HOST: ${COMPOSE_DB_HOST:-mysql}
+      DB_PORT: ${COMPOSE_DB_PORT:-3306}
+      DB_DATABASE: ${HOLDING_DB_DATABASE:-holding}
+      DB_USERNAME: ${HOLDING_DB_USERNAME:-holding}
+      DB_PASSWORD: ${HOLDING_DB_PASSWORD:?set HOLDING_DB_PASSWORD in .env}
+      SESSION_DRIVER: ${SESSION_DRIVER:-database}
+      CACHE_STORE: ${CACHE_STORE:-database}
+      QUEUE_CONNECTION: ${QUEUE_CONNECTION:-database}
+      REDIS_CLIENT: predis
+      REDIS_HOST: ${COMPOSE_REDIS_HOST:-redis}
+      REDIS_PORT: ${COMPOSE_REDIS_PORT:-6379}
+      REDIS_PASSWORD: ${COMPOSE_REDIS_PASSWORD:-}
+      # SSO token bus: inside this stack the bus is the redis-sso service, but
+      # the value is overridable so a containerised portal can point at a
+      # remote holding host without any code change.
+      SSO_REDIS_HOST: ${SSO_COMPOSE_REDIS_HOST:-redis-sso}
+      SSO_REDIS_PORT: ${SSO_COMPOSE_REDIS_PORT:-6379}
+      SSO_REDIS_PASSWORD: ${SSO_REDIS_PASSWORD:?set SSO_REDIS_PASSWORD in .env}
+      SSO_REDIS_DB: ${SSO_REDIS_DB:-0}
+      SSO_CACHE_REDIS_CONNECTION: sso
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD-SHELL", "php artisan about --only=environment >/dev/null 2>&1"]
+      interval: 30s
+      timeout: 15s
+      retries: 5
+      start_period: 40s
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      redis-sso:
+        condition: service_healthy
+
+  queue:
+    image: new_holding-app
+    build:
+      context: .
+      args:
+        UID: ${APP_UID:-1000}
+        GID: ${APP_GID:-1000}
+    working_dir: /var/www/html
+    restart: unless-stopped
+    command: php artisan queue:work database --tries=3 --timeout=90 --sleep=2
+    volumes:
+      - .:/var/www/html
+    environment:
+      APP_ENV: ${APP_ENV:-local}
+      DB_CONNECTION: mysql
+      DB_HOST: ${COMPOSE_DB_HOST:-mysql}
+      DB_PORT: ${COMPOSE_DB_PORT:-3306}
+      DB_DATABASE: ${HOLDING_DB_DATABASE:-holding}
+      DB_USERNAME: ${HOLDING_DB_USERNAME:-holding}
+      DB_PASSWORD: ${HOLDING_DB_PASSWORD:?set HOLDING_DB_PASSWORD in .env}
+      CACHE_STORE: ${CACHE_STORE:-database}
+      QUEUE_CONNECTION: database
+      REDIS_CLIENT: predis
+      REDIS_HOST: ${COMPOSE_REDIS_HOST:-redis}
+      REDIS_PORT: ${COMPOSE_REDIS_PORT:-6379}
+      REDIS_PASSWORD: ${COMPOSE_REDIS_PASSWORD:-}
+      SSO_REDIS_HOST: ${SSO_COMPOSE_REDIS_HOST:-redis-sso}
+      SSO_REDIS_PORT: ${SSO_COMPOSE_REDIS_PORT:-6379}
+      SSO_REDIS_PASSWORD: ${SSO_REDIS_PASSWORD:?set SSO_REDIS_PASSWORD in .env}
+      SSO_REDIS_DB: ${SSO_REDIS_DB:-0}
+      SSO_CACHE_REDIS_CONNECTION: sso
+    healthcheck:
+      test: ["CMD-SHELL", "php artisan about --only=environment >/dev/null 2>&1"]
+      interval: 30s
+      timeout: 15s
+      retries: 5
+      start_period: 40s
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      redis-sso:
+        condition: service_healthy
+
+  nginx:
+    image: nginx:1.29-alpine
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8092}:80"
+    volumes:
+      - .:/var/www/html:ro
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - default
+      - web-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/login || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    depends_on:
+      app:
+        condition: service_healthy
+
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    # Bound to loopback only: published Docker bypasses firewalld, and an
+    # internet-facing MySQL has been attacked on this host before.
+    ports:
+      - "127.0.0.1:${FORWARD_DB_PORT:-3311}:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD in .env}
+      MYSQL_DATABASE: ${HOLDING_DB_DATABASE:-holding}
+      MYSQL_USER: ${HOLDING_DB_USERNAME:-holding}
+      MYSQL_PASSWORD: ${HOLDING_DB_PASSWORD:?set HOLDING_DB_PASSWORD in .env}
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  redis:
+    image: redis:8-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # ---------------------------------------------------------------------
+  # Central SSO token bus. Lives in the HOLDING stack because the portal is
+  # the SSO issuer; subsidiaries (akubumdes, new_sidbm) connect to the SAME
+  # server+port through their own SSO_REDIS_* variables.
+  # ---------------------------------------------------------------------
+  redis-sso:
+    image: redis:8-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--requirepass", "${SSO_REDIS_PASSWORD}", "--appendonly", "yes"]
+    ports:
+      # Published (not loopback-only) on purpose: mode 2 of the contract lets
+      # subsidiaries on OTHER servers reach the bus. Restrict with
+      # SSO_REDIS_BIND_IP=127.0.0.1 on single-server installs, and always
+      # firewall 6380 + keep `requirepass` set.
+      - "${SSO_REDIS_BIND_IP:-0.0.0.0}:${FORWARD_SSO_REDIS_PORT:-6380}:6379"
+    volumes:
+      - redis-sso-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli --no-auth-warning -a \"$$REDISCLI_AUTH\" ping | grep -q PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    environment:
+      REDISCLI_AUTH: ${SSO_REDIS_PASSWORD:?set SSO_REDIS_PASSWORD in .env}
+
+networks:
+  web-network:
+    external: true
+
+volumes:
+  mysql-data:
+  redis-data:
+  redis-sso-data:

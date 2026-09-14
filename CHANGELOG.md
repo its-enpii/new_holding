@@ -4,6 +4,9 @@ Semua perubahan penting pada proyek **new_holding** dicatat dalam berkas ini. Fo
 
 ## [Unreleased]
 
+### Fixed
+- **Auto-login SSO jalur owner "Quick Access" (bug CORS lintas-origin)**: `Tenant\AppAccessController` kini mengembalikan `Inertia::location()` alih-alih `redirect()->away()` mentah. Sebelumnya POST XHR Inertia yang di-redirect ke `instance_url` Holding lain memicu preflight CORS (`net::ERR_FAILED`), user stuck di dashboard, dan token tertinggal di bus redis sampai TTL. Request non-Inertia tetap 302 polos. Test baru assert 409 + `x-inertia-location`; E2E browser nyata owner→akubumdes ALL_PASS (97 test / 788 assertions). Aturan permanen dicatat di `.ai/rules/sso-redirect.md`.
+
 ### Added
 - **PWA (Progressive Web App) & Offline Handling (`new_holding`)**:
   - `public/manifest.webmanifest` & ikon standar (`icon-192.png`, `icon-512.png`) dengan tema Indigo Ledger.

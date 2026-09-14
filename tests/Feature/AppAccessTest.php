@@ -11,6 +11,7 @@ use App\Models\TenantApplication;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
+use Inertia\Inertia;
 use Tests\TestCase;
 
 final class AppAccessTest extends TestCase
@@ -74,6 +75,35 @@ final class AppAccessTest extends TestCase
             'subject_type' => TenantApplication::class,
             'subject_id' => $tenantApp->id,
         ]);
+    }
+
+    public function test_owner_quick_access_redirect_uses_inertia_location_for_xhr_requests(): void
+    {
+        $tenant = Tenant::factory()->create();
+        $user = User::factory()->tenantOwner()->for($tenant)->create();
+        $application = Application::factory()->create(['name' => 'POS Desa']);
+
+        $tenantApp = TenantApplication::factory()->create([
+            'tenant_id' => $tenant->id,
+            'application_id' => $application->id,
+            'instance_url' => 'https://pos.desa.test/app',
+            'is_active' => true,
+            'expired_at' => now()->addMonth(),
+        ]);
+
+        $headers = [
+            'X-Inertia' => 'true',
+        ];
+        $version = Inertia::getVersion();
+        if ($version !== null && $version !== '') {
+            $headers['X-Inertia-Version'] = $version;
+        }
+
+        $response = $this->actingAs($user)->post(route('app.access', $tenantApp), [], $headers);
+
+        $response->assertStatus(409);
+        $location = (string) $response->headers->get('X-Inertia-Location');
+        $this->assertStringStartsWith('https://pos.desa.test/app/auth/holding?token=', $location);
     }
 
     public function test_user_from_different_tenant_cannot_access_app(): void

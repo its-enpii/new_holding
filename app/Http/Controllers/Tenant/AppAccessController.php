@@ -9,10 +9,11 @@ use App\Models\TenantApplication;
 use App\Services\Access\TenantApplicationAccessValidator;
 use App\Services\ActivityLogger;
 use App\Services\SsoTokenService;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Validation\ValidationException;
+use Inertia\Inertia;
+use Symfony\Component\HttpFoundation\Response;
 
 final class AppAccessController extends Controller
 {
@@ -22,7 +23,7 @@ final class AppAccessController extends Controller
         private readonly SsoTokenService $ssoTokenService,
     ) {}
 
-    public function access(Request $request, TenantApplication $tenantApplication): RedirectResponse
+    public function access(Request $request, TenantApplication $tenantApplication): Response
     {
         $user = $request->user();
 
@@ -57,7 +58,7 @@ final class AppAccessController extends Controller
 
         $token = $this->ssoTokenService->create($tenantApplication, $user)['token'];
 
-        return redirect()->away(
+        return Inertia::location(
             URL::to("{$tenantApplication->instance_url}/auth/holding").'?'.http_build_query(['token' => $token])
         );
     }

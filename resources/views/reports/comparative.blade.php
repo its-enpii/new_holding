@@ -7,37 +7,108 @@
     $labelFor = fn (\App\Models\TenantApplication $application): string => $application->label
         ?? $application->application?->name
         ?? ('Unit '.$application->id);
-    $combinedValue = function (array $row) use ($applications): int|float|null {
-        $sum = null;
 
-        foreach ($applications as $application) {
-            $value = $row['values'][$application->id] ?? null;
-
-            if (is_numeric($value)) {
-                $sum = ($sum ?? 0) + $value + 0;
-            }
+    // Kontrak v1 laba rugi: satu sel bisa membawa tiga kolom periode. Skalar (sumber
+    // legacy / laporan non-berkala) tetap satu angka; bentuknya tidak pernah dihitung ulang.
+    $periodColumns = ['prior' => 's.d lalu', 'current' => 'periode ini', 'ytd' => 's.d sekarang'];
+    $cellsFor = function (mixed $value) use ($periodColumns): ?array {
+        if (! is_array($value)) {
+            return null;
         }
 
-        return $sum;
+        $cells = [];
+
+        foreach (array_keys($periodColumns) as $column) {
+            $columnValue = $value[$column] ?? null;
+            $cells[$column] = is_numeric($columnValue) ? $columnValue + 0 : null;
+        }
+
+        return $cells;
     };
-    $combinedTotal = function (string $key) use ($applications, $totals): int|float|null {
-        $sum = null;
+    // Total Gabungan: nilai berkala dijumlah PER KOLOM (agregasi tampilan yang sama dengan
+    // service `cell()`), skalar tetap dijumlah satu angka. Holding tidak mengarang angka baru.
+    $combineValues = function (array $values) use ($cellsFor, $periodColumns): array|int|float|null {
+        $columns = null;
+        $scalar = null;
 
-        foreach ($applications as $application) {
-            $value = $totals[$application->id][$key] ?? null;
+        foreach ($values as $value) {
+            $cells = $cellsFor($value);
+
+            if ($cells !== null) {
+                $columns ??= array_fill_keys(array_keys($periodColumns), null);
+
+                foreach (array_keys($periodColumns) as $column) {
+                    if (is_numeric($cells[$column])) {
+                        $columns[$column] = ($columns[$column] ?? 0) + $cells[$column] + 0;
+                    }
+                }
+
+                continue;
+            }
 
             if (is_numeric($value)) {
-                $sum = ($sum ?? 0) + $value + 0;
+                $scalar = ($scalar ?? 0) + $value + 0;
             }
         }
 
-        return $sum;
+        if ($columns !== null) {
+            if ($scalar !== null) {
+                $columns['ytd'] = ($columns['ytd'] ?? 0) + $scalar;
+            }
+
+            return $columns;
+        }
+
+        return $scalar;
+    };
+    // Render satu sel: berkala → tiga baris berlabel dalam SATU sel (aman dompdf),
+    // skalar → satu angka seperti sebelumnya.
+    $cellsMarkup = function (array $cells) use ($money, $periodColumns): string {
+        $lines = [];
+
+        foreach ($periodColumns as $column => $label) {
+            $value = $cells[$column];
+            $lines[] = sprintf(
+                '<div class="period"><span class="pl">%s</span> <b>%s</b></div>',
+                $label,
+                $value === null ? '-' : $money($value),
+            );
+        }
+
+        return '<div class="periods">'.implode('', $lines).'</div>';
+    };
+    $valueCell = function (mixed $value) use ($cellsFor, $cellsMarkup, $money): string {
+        $cells = $cellsFor($value);
+
+        if ($cells !== null) {
+            return $cellsMarkup($cells);
+        }
+
+        return e(is_numeric($value) ? $money($value) : '-');
+    };
+    $combinedValue = function (array $row) use ($applications, $combineValues): array|int|float|null {
+        $values = [];
+
+        foreach ($applications as $application) {
+            $values[] = $row['values'][$application->id] ?? null;
+        }
+
+        return $combineValues($values);
+    };
+    $combinedTotal = function (string $key) use ($applications, $totals, $combineValues): array|int|float|null {
+        $values = [];
+
+        foreach ($applications as $application) {
+            $values[] = $totals[$application->id][$key] ?? null;
+        }
+
+        return $combineValues($values);
     };
     $totalKeys = [];
 
     foreach ($applications as $application) {
         foreach ((array) ($totals[$application->id] ?? []) as $key => $value) {
-            if (is_numeric($value)) {
+            if (is_numeric($value) || $cellsFor($value) !== null) {
                 $totalKeys[] = $key;
             }
         }
@@ -71,6 +142,10 @@
         .level-3 td:first-child { padding-left: 26px; }
         .code { color: #6b6a86; }
         .totals td { border-top: 2px solid #4338ca; background: #f1f1f9; font-weight: 600; }
+        .periods { line-height: 1.4; }
+        .period { white-space: nowrap; font-weight: 400; }
+        .period .pl { font-size: 6.2pt; color: #6b6a86; text-transform: lowercase; }
+        .totals .period { font-weight: 600; }
         .note { margin-top: 12px; font-size: 7.5pt; color: #474663; line-height: 1.5; }
         footer { position: fixed; bottom: -10mm; left: 0; right: 0; font-size: 7pt; color: #6b6a86; text-align: center; }
     </style>
@@ -117,10 +192,9 @@
                 <tr class="level-{{ $row['level'] }} @class(['section' => $row['level'] === 1])">
                     <td><span class="code">{{ $row['code'] ?: '—' }}</span> {{ $row['name'] }}</td>
                     @foreach ($applications as $application)
-                        @php $value = $row['values'][$application->id] ?? null; @endphp
-                        <td>{{ is_numeric($value) ? $money($value) : '-' }}</td>
+                        <td>{!! $valueCell($row['values'][$application->id] ?? null) !!}</td>
                     @endforeach
-                    <td class="total">{{ $combined === null ? '-' : $money($combined) }}</td>
+                    <td class="total">{!! $valueCell($combined) !!}</td>
                 </tr>
             @empty
                 <tr>
@@ -135,10 +209,9 @@
                     <tr>
                         <td>{{ $totalLabels[$key] ?? ucfirst(str_replace('_', ' ', $key)) }}</td>
                         @foreach ($applications as $application)
-                            @php $value = $totals[$application->id][$key] ?? null; @endphp
-                            <td>{{ is_numeric($value) ? $money($value) : '-' }}</td>
+                            <td>{!! $valueCell($totals[$application->id][$key] ?? null) !!}</td>
                         @endforeach
-                        <td class="total">{{ $combined === null ? '-' : $money($combined) }}</td>
+                        <td class="total">{!! $valueCell($combined) !!}</td>
                     </tr>
                 @endforeach
             </tfoot>

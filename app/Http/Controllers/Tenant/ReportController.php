@@ -26,6 +26,13 @@ final class ReportController extends Controller
         'calk' => 'CALK',
     ];
 
+    /**
+     * Kolom periodik kontrak v1 laba rugi, berurutan seperti pada header CSV.
+     *
+     * @var array<string, string>
+     */
+    private const PERIOD_COLUMNS = ['prior' => 's.d lalu', 'current' => 'periode ini', 'ytd' => 's.d sekarang'];
+
     public function __construct(
         private readonly SubsidiaryReportService $reportService,
         private readonly ActivityLogger $activityLogger,
@@ -65,13 +72,21 @@ final class ReportController extends Controller
 
         $this->activityLogger->log($request, 'export_report', $request->user(), TenantApplication::class, $applications->first()?->id, ['format' => 'csv', ...$this->metadata($validated, $applications)]);
 
-        return response()->streamDownload(function () use ($comparative, $applications): void {
+        $periodic = $this->hasPeriodColumns($comparative);
+
+        return response()->streamDownload(function () use ($comparative, $applications, $periodic): void {
             $stream = fopen('php://output', 'wb');
             fwrite($stream, "\xEF\xBB\xBF");
-            fputcsv($stream, ['Kode', 'Nama', ...$applications->pluck('id')->all()], ';');
+            fputcsv($stream, $this->csvHeader($applications, $periodic), ';');
 
             foreach ($comparative['rows'] as $row) {
-                fputcsv($stream, [$row['code'], $row['name'], ...array_map($this->formatIndonesian(...), $row['values'])], ';');
+                $cells = [$row['code'], $row['name']];
+
+                foreach ($applications as $application) {
+                    $cells = [...$cells, ...$this->valueCells($row['values'][$application->id] ?? null, $periodic)];
+                }
+
+                fputcsv($stream, $cells, ';');
             }
 
             foreach ($comparative['totals'] as $applicationId => $totals) {
@@ -79,7 +94,9 @@ final class ReportController extends Controller
                     continue;
                 }
 
-                fputcsv($stream, ['TOTAL', $applicationId, ...array_map($this->formatIndonesian(...), array_values($totals))], ';');
+                foreach ($totals as $key => $value) {
+                    fputcsv($stream, ['TOTAL', $applicationId.' '.$key, ...$this->totalCells((int) $applicationId, $value, $applications, $periodic)], ';');
+                }
             }
         }, $this->filename($validated, 'csv'), ['Content-Type' => 'text/csv; charset=UTF-8']);
     }
@@ -272,6 +289,117 @@ final class ReportController extends Controller
             : sprintf('%d-%02d', $validated['year'], $validated['month']);
 
         return 'laporan-'.$validated['type'].'-'.$period.'.'.$extension;
+    }
+
+    /**
+     * Apakah hasil `comparative()` memuat nilai berkala (triple kontrak v1 laba rugi)?
+     *
+     * Deteksi dilakukan pada sajian (bukan dari jenis laporan) sehingga sumber legacy
+     * yang mengirim skalar tetap diekspor satu kolom per aplikasi seperti sebelumnya.
+     *
+     * @param  array{rows: list<array<string, mixed>>, totals: array<int, array<string, mixed>|null>}  $comparative
+     */
+    private function hasPeriodColumns(array $comparative): bool
+    {
+        foreach ($comparative['rows'] as $row) {
+            foreach ((array) ($row['values'] ?? []) as $value) {
+                if (is_array($value)) {
+                    return true;
+                }
+            }
+        }
+
+        foreach ($comparative['totals'] as $totals) {
+            foreach ((array) $totals as $value) {
+                if (is_array($value)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param  Collection<int, TenantApplication>  $applications
+     * @return list<string>
+     */
+    private function csvHeader(Collection $applications, bool $periodic): array
+    {
+        $header = ['Kode', 'Nama'];
+
+        foreach ($applications as $application) {
+            if ($periodic) {
+                foreach (self::PERIOD_COLUMNS as $label) {
+                    $header[] = $application->id.' '.$label;
+                }
+
+                continue;
+            }
+
+            $header[] = (string) $application->id;
+        }
+
+        return $header;
+    }
+
+    /**
+     * Satu baris total: hanya kolom aplikasi pemilik total yang terisi agar tetap rata
+     * dengan header, sementara kolom unit usaha lain dibiarkan kosong.
+     *
+     * @param  Collection<int, TenantApplication>  $applications
+     * @return list<string>
+     */
+    private function totalCells(int $applicationId, mixed $value, Collection $applications, bool $periodic): array
+    {
+        $cells = [];
+        $width = $periodic ? count(self::PERIOD_COLUMNS) : 1;
+
+        foreach ($applications as $application) {
+            $cells = [...$cells, ...($application->id === $applicationId
+                ? $this->valueCells($value, $periodic)
+                : array_fill(0, $width, ''))];
+        }
+
+        return $cells;
+    }
+
+    /**
+     * Sel nilai sebuah aplikasi: triple → tiga sel berurutan, skalar → satu sel
+     * (pada mode berkala masuk kolom `s.d sekarang`, dua sel sebelumnya kosong).
+     *
+     * @return list<string>
+     */
+    private function valueCells(mixed $value, bool $periodic): array
+    {
+        if (! $periodic) {
+            return [$this->formatIndonesian(is_numeric($value) ? $value + 0 : null)];
+        }
+
+        if (! is_array($value)) {
+            return [
+                ...array_fill(0, count(self::PERIOD_COLUMNS) - 1, ''),
+                $this->formatIndonesian(is_numeric($value) ? $value + 0 : null),
+            ];
+        }
+
+        return $this->periodCells($value);
+    }
+
+    /**
+     * @param  array<array-key, mixed>  $columns
+     * @return list<string>
+     */
+    private function periodCells(array $columns): array
+    {
+        $cells = [];
+
+        foreach (array_keys(self::PERIOD_COLUMNS) as $column) {
+            $value = $columns[$column] ?? null;
+            $cells[] = $this->formatIndonesian(is_numeric($value) ? $value + 0 : null);
+        }
+
+        return $cells;
     }
 
     private function formatIndonesian(int|float|null $value): string

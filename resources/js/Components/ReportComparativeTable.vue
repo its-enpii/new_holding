@@ -10,7 +10,9 @@ const props = defineProps({
 });
 
 const { format } = useMoney();
-const isIncomeStatement = computed(() => props.reportType === 'income_statement');
+const columns = ['prior', 'current', 'ytd'];
+
+const variant = computed(() => props.report.meta?.variant || null);
 
 const stateLabels = {
     ok: 'OK',
@@ -26,19 +28,59 @@ const stateTones = {
     auth_error: 'warning',
 };
 
+function isNumber(value) {
+    return typeof value === 'number' ? Number.isFinite(value) : value !== null && value !== '' && Number.isFinite(Number(value));
+}
+
+/**
+ * Bentuk nilai menentukan sajian sel: triple kontrak v1 tampil tiga kolom, skalar satu
+ * kolom. Deteksi dilakukan per sel (bukan per laporan) agar payload campuran tetap aman.
+ */
+function isTriple(value) {
+    return value !== null && typeof value === 'object';
+}
+
 function valueFor(row, application, column = null) {
     const value = row.values?.[application.id];
 
     if (value === null || value === undefined) return null;
     if (column === null) return value;
+    if (!isTriple(value)) return isNumber(value) ? value : null;
 
-    return value[column] ?? null;
+    const columnValue = value[column];
+
+    return isNumber(columnValue) ? columnValue : null;
 }
 
 function displayValue(row, application, column = null) {
     const value = valueFor(row, application, column);
 
     return value === null ? '-' : format(value);
+}
+
+function normalizedTotal(totals) {
+    const afterTax = totals?.laba_rugi_normalized_after_tax;
+
+    if (isNumber(afterTax)) return afterTax;
+    if (!afterTax || typeof afterTax !== 'object') return null;
+
+    return isNumber(afterTax.ytd) ? afterTax.ytd : null;
+}
+
+/**
+ * Total footer: angka warisan sumber (`net_income`/`assets`) lebih dulu, lalu hasil
+ * normalisasi laba rugi. Holding tidak pernah mengarang angka yang tidak dikirim sumber.
+ */
+function footerValue(application) {
+    const totals = props.report.totals?.[application.id];
+
+    if (!totals || typeof totals !== 'object') return null;
+
+    const candidates = props.reportType === 'income_statement'
+        ? [normalizedTotal(totals), totals.net_income]
+        : [totals.net_income, totals.assets];
+
+    return candidates.find(isNumber) ?? null;
 }
 </script>
 
@@ -47,7 +89,12 @@ function displayValue(row, application, column = null) {
         <table class="min-w-full border-collapse text-sm">
             <thead class="sticky top-0 z-10 bg-surface-container-low">
                 <tr>
-                    <th class="min-w-[280px] border-b border-outline-variant px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-primary">Kode / Nama</th>
+                    <th class="min-w-[280px] border-b border-outline-variant px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-primary">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <span>Kode / Nama</span>
+                            <AppBadge v-if="variant" tone="neutral">{{ variant }}</AppBadge>
+                        </div>
+                    </th>
                     <th
                         v-for="application in applications"
                         :key="application.id"
@@ -78,11 +125,9 @@ function displayValue(row, application, column = null) {
                         class="px-4 py-2.5 text-right tabular-nums"
                         :class="row.level === 1 ? 'font-semibold text-on-surface' : 'text-on-surface-variant'"
                     >
-                        <template v-if="isIncomeStatement">
-                            <div class="grid grid-cols-3 gap-2">
-                                <span v-for="column in ['prior', 'current', 'ytd']" :key="column">{{ displayValue(row, application, column) }}</span>
-                            </div>
-                        </template>
+                        <div v-if="isTriple(valueFor(row, application))" class="grid grid-cols-3 gap-2">
+                            <span v-for="column in columns" :key="column">{{ displayValue(row, application, column) }}</span>
+                        </div>
                         <template v-else>{{ displayValue(row, application) }}</template>
                     </td>
                 </tr>
@@ -95,9 +140,7 @@ function displayValue(row, application, column = null) {
                         :key="application.id"
                         class="px-4 py-3 text-right font-semibold tabular-nums text-on-surface"
                     >
-                        <span v-if="report.totals[application.id]">
-                            {{ isIncomeStatement ? format(report.totals[application.id].net_income) : format(report.totals[application.id].assets) }}
-                        </span>
+                        <span v-if="footerValue(application) !== null">{{ format(footerValue(application)) }}</span>
                         <span v-else>-</span>
                     </td>
                 </tr>

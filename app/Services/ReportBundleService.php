@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Models\TenantApplication;
+use App\Support\Reports\IncomeStatementNormalizer;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Barryvdh\DomPDF\PDF as DomPDF;
 use Carbon\Carbon;
@@ -34,6 +35,12 @@ final class ReportBundleService
     /** @var list<string> */
     public const REPORT_TYPES = ['balance_sheet', 'income_statement', 'cash_flow', 'equity_changes', 'calk'];
 
+    /** Kolom nilai berjalan pada triple kontrak v1. */
+    private const YTD_COLUMN = 'ytd';
+
+    /** Penanda sel tunggal untuk nilai skalar (laporan non-berkala). */
+    private const SCALAR_COLUMN = '_value';
+
     /**
      * Urutan pelaporan menentukan penomoran berkas di dalam arsip ZIP.
      *
@@ -60,6 +67,9 @@ final class ReportBundleService
         'closing_cash' => 'Kas Akhir Periode',
         'closing_equity' => 'Ekuitas Akhir',
         'participants' => 'Jumlah Pihak Terkait',
+        'laba_rugi_normalized_before_tax' => 'Laba Sebelum Pajak',
+        'laba_rugi_normalized_tax' => 'Pajak Penghasilan',
+        'laba_rugi_normalized_after_tax' => 'Laba Setelah Pajak',
     ];
 
     /**
@@ -182,7 +192,7 @@ final class ReportBundleService
      * Laporan konsolidasi satu kolom: agregat seluruh unit usaha dikurangi eliminasi internal.
      *
      * @param  Collection<int, TenantApplication>  $applications
-     * @return array{rows: list<array{level: int, code: string, name: string, key: string, value: int|float|null}>, totals: array<string, int|float|null>, eliminations: list<array{side: string, code: string, name: string, amount: int|float}>, offline: list<int>}
+     * @return array{rows: list<array{level: int, code: string, name: string, key: string, value: array<string, int|float>|int|float|null}>, totals: array<string, int|float|null>, eliminations: list<array{side: string, code: string, name: string, amount: int|float}>, offline: list<int>}
      */
     public function consolidated(Collection $applications, string $reportType, ?int $month, int $year, bool $force = false): array
     {
@@ -196,7 +206,7 @@ final class ReportBundleService
     /**
      * @param  Collection<int, TenantApplication>  $applications
      * @param  array{rows: list<array{level: int, code: string, name: string, key: string, values: array<int, mixed>}>, totals: array<int, array<string, int|float|null>|null>, appStates: array<int, string>}  $comparative
-     * @return array{rows: list<array{level: int, code: string, name: string, key: string, value: int|float|null}>, totals: array<string, int|float|null>, eliminations: list<array{side: string, code: string, name: string, amount: int|float}>, offline: list<int>}
+     * @return array{rows: list<array{level: int, code: string, name: string, key: string, value: array<string, int|float>|int|float|null}>, totals: array<string, int|float|null>, eliminations: list<array{side: string, code: string, name: string, amount: int|float}>, offline: list<int>}
      */
     private function consolidate(Collection $applications, array $comparative, string $reportType): array
     {
@@ -209,7 +219,7 @@ final class ReportBundleService
             $value = $this->aggregate($applications, $row['values']);
 
             if ($value !== null) {
-                $rows[$key]['value'] = $this->numeric($rows[$key]['value']) + $value;
+                $rows[$key]['value'] = $value;
             }
         }
 
@@ -265,15 +275,16 @@ final class ReportBundleService
             $affected = $this->leafRows(array_filter($internal, fn (array $row): bool => $row['pair'] === $pair));
             $debits = array_filter($affected, fn (array $row): bool => $row['side'] === 'debit');
             $credits = array_filter($affected, fn (array $row): bool => $row['side'] === 'credit');
-            $amount = min($this->absoluteSum($debits), $this->absoluteSum($credits));
+            $amounts = $this->eliminationAmounts($debits, $credits);
+            $amount = $this->basisAmount($amounts);
 
-            if ($amount <= 0) {
+            if ($amount === null || $amount <= 0) {
                 continue;
             }
 
-            $this->reduceRows($rows, $debits, $amount);
-            $this->reduceRows($rows, $credits, $amount);
-            $this->rollUpToAncestors($rows, $internal, array_merge(array_keys($debits), array_keys($credits)));
+            $this->reduceRows($rows, $debits, $amounts);
+            $this->reduceRows($rows, $credits, $amounts);
+            $this->rollUpToAncestors($rows, $internal, array_merge(array_keys($debits), array_keys($credits)), $amounts);
 
             foreach ($definition['totals'][$reportType] ?? [] as $totalKey) {
                 if (array_key_exists($totalKey, $totals)) {
@@ -296,7 +307,9 @@ final class ReportBundleService
      */
     private function internalCategory(array $row): ?array
     {
-        if (! is_numeric($row['value']) || $row['value'] + 0 === 0) {
+        $basis = $this->scalarOf($row['value']);
+
+        if ($basis === null || $basis === 0) {
             return null;
         }
 
@@ -354,75 +367,116 @@ final class ReportBundleService
     /**
      * Menyesuaikan akun induk dari baris yang dieliminasi agar sub-total tetap konsisten.
      *
-     * @param  array<string, array{level: int, code: string, name: string, key: string, value: int|float|null}>  $rows
-     * @param  array<string, array{level: int, code: string, name: string, key: string, value: int|float|null, side: string, pair: string}>  $internal
+     * @param  array<string, array{level: int, code: string, name: string, key: string, value: mixed}>  $rows
+     * @param  array<string, array{level: int, code: string, name: string, key: string, value: mixed, side: string, pair: string}>  $internal
      * @param  list<string>  $eliminatedKeys
+     * @param  array<string, int|float>  $amounts
      */
-    private function rollUpToAncestors(array &$rows, array $internal, array $eliminatedKeys): void
+    private function rollUpToAncestors(array &$rows, array $internal, array $eliminatedKeys, array $amounts): void
     {
         foreach ($eliminatedKeys as $eliminatedKey) {
-            $delta = $this->numeric($internal[$eliminatedKey]['value']) - $this->numeric($rows[$eliminatedKey]['value']);
+            foreach (array_keys($amounts) as $column) {
+                $delta = $this->numeric($this->cell($internal[$eliminatedKey]['value'], $column) ?? 0)
+                    - $this->numeric($this->cell($rows[$eliminatedKey]['value'], $column) ?? 0);
 
-            if ($delta === 0) {
-                continue;
-            }
+                if ($delta === 0) {
+                    continue;
+                }
 
-            foreach ($rows as $key => $row) {
-                $needsAdjustment = $key !== $eliminatedKey
-                    && ! in_array($key, $eliminatedKeys, true)
-                    && ! array_key_exists($key, $internal)
-                    && $this->isAncestor($row, $internal[$eliminatedKey]);
+                foreach ($rows as $key => $row) {
+                    $needsAdjustment = $key !== $eliminatedKey
+                        && ! in_array($key, $eliminatedKeys, true)
+                        && ! array_key_exists($key, $internal)
+                        && $this->isAncestor($row, $internal[$eliminatedKey]);
 
-                if ($needsAdjustment) {
-                    $rows[$key]['value'] = $this->numeric($row['value']) - $delta;
+                    if ($needsAdjustment && array_key_exists($column, $this->cells($row['value']))) {
+                        $rows[$key]['value'] = $this->putCell(
+                            $row['value'],
+                            $column,
+                            $this->numeric($this->cell($row['value'], $column) ?? 0) - $delta,
+                        );
+                    }
                 }
             }
         }
     }
 
     /**
-     * Mengurangi nilai akun terdampak secara proporsional sampai total eliminasi tercapai.
+     * Mengurangi nilai akun terdampak secara proporsional sampai total eliminasi tercapai,
+     * per kolom nilai (`prior`/`current`/`ytd` maupun skalar).
      *
-     * @param  array<string, array{level: int, code: string, name: string, key: string, value: int|float|null}>  $rows
-     * @param  array<string, array{level: int, code: string, name: string, key: string, value: int|float|null, side: string, pair: string}>  $affected
+     * @param  array<string, array{level: int, code: string, name: string, key: string, value: mixed}>  $rows
+     * @param  array<string, array{level: int, code: string, name: string, key: string, value: mixed, side: string, pair: string}>  $affected
+     * @param  array<string, int|float>  $amounts
      */
-    private function reduceRows(array &$rows, array $affected, int|float $elimination): void
+    private function reduceRows(array &$rows, array $affected, array $amounts): void
     {
-        $base = $this->absoluteSum($affected);
+        foreach ($amounts as $column => $elimination) {
+            $affectedCells = array_filter($affected, fn (array $row): bool => array_key_exists($column, $this->cells($row['value'])));
+            $base = $this->absoluteSum($affectedCells, $column);
 
-        if ($base <= 0) {
-            return;
+            if ($base <= 0) {
+                continue;
+            }
+
+            $keys = array_keys($affectedCells);
+            $lastKey = $keys[count($keys) - 1];
+            $allocated = 0;
+
+            foreach ($affectedCells as $key => $row) {
+                $value = $this->cell($row['value'], $column) ?? 0;
+                $magnitude = abs($value);
+                $share = $key === $lastKey
+                    ? min($magnitude, max($elimination - $allocated, 0))
+                    : min($magnitude, round($elimination * $magnitude / $base, 2));
+
+                $rows[$key]['value'] = $this->putCell(
+                    $row['value'],
+                    $column,
+                    $this->numeric($value) - ($value <=> 0) * $share,
+                );
+                $allocated += $share;
+            }
+        }
+    }
+
+    /**
+     * Menulis kembali satu sel tanpa mengubah bentuk nilai baris (triple tetap triple).
+     */
+    private function putCell(mixed $value, string $column, int|float $written): mixed
+    {
+        if ($column === self::SCALAR_COLUMN) {
+            return $written;
         }
 
-        $keys = array_keys($affected);
-        $lastKey = $keys[count($keys) - 1];
-        $allocated = 0;
+        $cells = is_array($value) ? $value : [];
+        $cells[$column] = $written;
 
-        foreach ($affected as $key => $row) {
-            $value = $this->numeric($row['value']);
-            $magnitude = abs($value);
-            $share = $key === $lastKey
-                ? min($magnitude, max($elimination - $allocated, 0))
-                : min($magnitude, round($elimination * $magnitude / $base, 2));
-
-            $rows[$key]['value'] = $value - ($value <=> 0) * $share;
-            $allocated += $share;
-        }
+        return $cells;
     }
 
     /**
      * @param  Collection<int, TenantApplication>  $applications
      * @param  array<int, mixed>  $values
+     * @return array<string, int|float>|int|float|null
      */
-    private function aggregate(Collection $applications, array $values): int|float|null
+    private function aggregate(Collection $applications, array $values): array|int|float|null
     {
         $sum = null;
 
         foreach ($applications as $application) {
             $value = $values[$application->id] ?? null;
 
+            if (is_array($value)) {
+                $sum = $this->addNumeric($sum, $value);
+
+                continue;
+            }
+
             if (is_numeric($value)) {
-                $sum = $this->numeric(($sum ?? 0) + $value + 0);
+                $sum = is_array($sum)
+                    ? $this->addNumeric($sum, ['ytd' => $value + 0])
+                    : $this->numeric(($sum ?? 0) + $value + 0);
             }
         }
 
@@ -430,17 +484,147 @@ final class ReportBundleService
     }
 
     /**
-     * @param  array<string, array{value: int|float|null}>  $rows
+     * Menjumlah nilai kontrak v1 per kolom (`prior`/`current`/`ytd`) tanpa mengarang
+     * kolom yang tidak dikirim sumber. Skalar yang bercampur dengan triple dianggap
+     * nilai berjalan (ytd) agar agregat tetap terbaca.
+     *
+     * @param  array<string, int|float>|int|float|null  $left
+     * @param  array<string, mixed>  $right
+     * @return array<string, int|float>
      */
-    private function absoluteSum(array $rows): int|float
+    private function addNumeric(array|int|float|null $left, array $right): array
+    {
+        $columns = is_array($left) ? $left : [];
+
+        if (! is_array($left) && is_numeric($left)) {
+            $columns['ytd'] = $left + 0;
+        }
+
+        foreach ($right as $column => $value) {
+            if (! is_numeric($value)) {
+                continue;
+            }
+
+            $existing = $columns[$column] ?? null;
+            $columns[$column] = $this->numeric((is_numeric($existing) ? $existing + 0 : 0) + $value + 0);
+        }
+
+        return $columns;
+    }
+
+    /**
+     * @param  array<string, array{value: mixed}>  $rows
+     */
+    private function absoluteSum(array $rows, string $column = self::SCALAR_COLUMN): int|float
     {
         $sum = 0;
 
         foreach ($rows as $row) {
-            $sum += is_numeric($row['value']) ? abs($row['value'] + 0) : 0;
+            $value = $this->cell($row['value'], $column);
+            $sum += $value === null ? 0 : abs($value);
         }
 
         return $sum;
+    }
+
+    /**
+     * Besaran eliminasi dihitung per kolom nilai: kolom yang tidak terkirim sumber
+     * (atau nol) tidak ikut dikurangi sehingga sajian skalar lama tidak berubah.
+     *
+     * @param  array<string, array{value: mixed}>  $debits
+     * @param  array<string, array{value: mixed}>  $credits
+     * @return array<string, int|float>
+     */
+    private function eliminationAmounts(array $debits, array $credits): array
+    {
+        $amounts = [];
+
+        foreach ($this->valueColumns([...$debits, ...$credits]) as $column) {
+            $amount = min($this->absoluteSum($debits, $column), $this->absoluteSum($credits, $column));
+
+            if ($amount > 0) {
+                $amounts[$column] = $amount;
+            }
+        }
+
+        return $amounts;
+    }
+
+    /**
+     * Kolom yang dipakai sebagai angka eliminasi yang dilaporkan: ytd lebih dulu,
+     * kemudian kolom tersisa, lalu nilai skalar.
+     *
+     * @param  array<string, int|float>  $amounts
+     */
+    private function basisAmount(array $amounts): int|float|null
+    {
+        foreach ([self::YTD_COLUMN, 'current', 'prior', self::SCALAR_COLUMN] as $column) {
+            if (array_key_exists($column, $amounts)) {
+                return $amounts[$column];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $rows
+     * @return list<string>
+     */
+    private function valueColumns(array $rows): array
+    {
+        $columns = [];
+
+        foreach ($rows as $row) {
+            foreach (array_keys($this->cells($row['value'] ?? null)) as $column) {
+                $columns[$column] = true;
+            }
+        }
+
+        return array_keys($columns);
+    }
+
+    /**
+     * Pecah nilai baris menjadi sel per kolom. Nilai skalar menjadi satu sel tanpa kolom.
+     *
+     * @return array<string, int|float|null>
+     */
+    private function cells(mixed $value): array
+    {
+        if (is_array($value)) {
+            $cells = [];
+
+            foreach (IncomeStatementNormalizer::COLUMNS as $column) {
+                if (array_key_exists($column, $value)) {
+                    $cells[$column] = is_numeric($value[$column]) ? $value[$column] + 0 : null;
+                }
+            }
+
+            return $cells === [] ? [self::SCALAR_COLUMN => null] : $cells;
+        }
+
+        return [self::SCALAR_COLUMN => is_numeric($value) ? $value + 0 : null];
+    }
+
+    private function cell(mixed $value, string $column): int|float|null
+    {
+        return $this->cells($value)[$column] ?? null;
+    }
+
+    /**
+     * Angka representatif sebuah baris untuk pencocokan akun internal.
+     */
+    private function scalarOf(mixed $value): int|float|null
+    {
+        $cells = $this->cells($value);
+
+        foreach ([self::YTD_COLUMN, 'current', 'prior', self::SCALAR_COLUMN] as $column) {
+            if (is_numeric($cells[$column] ?? null)) {
+                return $cells[$column] + 0;
+            }
+        }
+
+        return null;
     }
 
     private function numeric(int|float|null $value): int|float

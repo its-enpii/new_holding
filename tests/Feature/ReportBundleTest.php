@@ -249,6 +249,70 @@ final class ReportBundleTest extends TestCase
             ->values();
     }
 
+    public function test_consolidated_income_statement_eliminates_only_the_sent_column(): void
+    {
+        $tenant = Tenant::factory()->create();
+        $applications = $this->applications($tenant, ['unit-satu' => [], 'unit-dua' => []]);
+
+        Http::fake([
+            'https://unit-satu.test/*' => Http::response($this->incomeStatementPayload(
+                [['code' => '4-1300', 'name' => 'Pendapatan Antar Unit Usaha', 'prior' => 0, 'current' => 100, 'ytd' => 200]],
+                1_000,
+            ), 200),
+            'https://unit-dua.test/*' => Http::response($this->incomeStatementPayload([], 800), 200),
+        ]);
+
+        $consolidated = app(ReportBundleService::class)->consolidated($applications, 'income_statement', null, 2026);
+        $values = array_column($consolidated['rows'], 'value', 'code');
+
+        $this->assertSame(0, $values['4-1300']['ytd'], 'Pendapatan internal tereliminasi penuh pada kolom ytd.');
+        $this->assertSame(100, $values['4-1300']['current'], 'Kolom yang tidak punya pasangan debit tidak ikut dikurangi.');
+        $this->assertSame(200, $values['5-1300']['ytd']);
+        $this->assertSame(1_600, $values['4']['ytd'], 'Akun pendapatan induk ikut terselizasi.');
+        $this->assertSame(1_600, $consolidated['totals']['revenue']);
+        $this->assertSame(200, $consolidated['totals']['expenses']);
+        $this->assertSame(200, $consolidated['eliminations'][0]['amount']);
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $internalRevenue
+     * @return array<string, mixed>
+     */
+    private function incomeStatementPayload(array $internalRevenue, int|float $revenue): array
+    {
+        return [
+            'status' => 'success',
+            'data' => [
+                'groups' => [
+                    [
+                        'level' => 1,
+                        'code' => '4',
+                        'name' => 'PENDAPATAN',
+                        'prior' => 0,
+                        'current' => $revenue,
+                        'ytd' => $revenue,
+                        'children' => [
+                            ['level' => 2, 'code' => '4-1000', 'name' => 'Pendapatan Usaha', 'prior' => 0, 'current' => $revenue, 'ytd' => $revenue],
+                            ...$internalRevenue,
+                        ],
+                    ],
+                    [
+                        'level' => 1,
+                        'code' => '5',
+                        'name' => 'BEBAN',
+                        'prior' => 0,
+                        'current' => 200,
+                        'ytd' => 200,
+                        'children' => [
+                            ['level' => 2, 'code' => '5-1300', 'name' => 'Beban Antar Unit Usaha', 'prior' => 0, 'current' => 0, 'ytd' => 200],
+                        ],
+                    ],
+                ],
+                'totals' => ['revenue' => $revenue, 'expenses' => 200, 'net_income' => $revenue - 200],
+            ],
+        ];
+    }
+
     /**
      * @param  Collection<int, TenantApplication>  $applications
      * @param  array<string, mixed>  $extra

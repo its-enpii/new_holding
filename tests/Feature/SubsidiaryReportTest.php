@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use App\Http\Controllers\Tenant\ReportController;
 use App\Models\ActivityLog;
 use App\Models\Application;
 use App\Models\ReportCache;
 use App\Models\Tenant;
 use App\Models\TenantApplication;
 use App\Models\User;
+use App\Services\ReportBundleService;
 use App\Services\SubsidiaryReportService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\ConnectionException;
@@ -201,6 +203,17 @@ final class SubsidiaryReportTest extends TestCase
             ->assertHeader('content-type', 'application/pdf');
     }
 
+    public function test_csv_period_columns_detected_from_report_shape(): void
+    {
+        $controller = app(ReportController::class);
+        $detector = new \ReflectionMethod($controller, 'hasPeriodColumns');
+        $detector->setAccessible(true);
+
+        $this->assertTrue($detector->invoke($controller, ['rows' => [['values' => [1 => ['prior' => 1, 'current' => 2, 'ytd' => 3]]]], 'totals' => []]));
+        $this->assertTrue($detector->invoke($controller, ['rows' => [['values' => [1 => null]]], 'totals' => [1 => ['net_income' => ['prior' => 0, 'current' => 0, 'ytd' => 5]]]]));
+        $this->assertFalse($detector->invoke($controller, ['rows' => [['values' => [1 => 500, 2 => null]]], 'totals' => [1 => ['assets' => 500]]]), 'Neraca lama harus tetap satu kolom per aplikasi.');
+    }
+
     public function test_admin_report_page_is_superadmin_only(): void
     {
         $owner = User::factory()->tenantOwner()->for(Tenant::factory()->create())->create();
@@ -267,6 +280,338 @@ final class SubsidiaryReportTest extends TestCase
             ->assertInertia(fn ($page) => $page
                 ->component('Tenant/Reports/Index')
                 ->has('report.rows'));
+    }
+
+    public function test_income_statement_normalizes_hierarchical_groups_into_triples(): void
+    {
+        $tenantApplication = TenantApplication::factory()->create(['instance_url' => 'https://sidbm.test']);
+        $service = app(SubsidiaryReportService::class);
+
+        Http::fake([
+            'https://sidbm.test/api/v1/holding/reports/income-statement?*' => Http::response($this->groupIncomeStatementPayload(), 200),
+        ]);
+
+        $report = $service->comparative(collect([$tenantApplication]), 'income_statement', 6, 2026);
+        $rows = array_column($report['rows'], null, 'key');
+
+        $this->assertSame(
+            ['prior' => 100.0, 'current' => 250.0, 'ytd' => 1_000.0],
+            $rows['4.1.01.01||Penjualan']['values'][$tenantApplication->id],
+        );
+        $this->assertSame(2, $rows['4.1.01.01||Penjualan']['level']);
+        $this->assertNull($report['meta']['variant'], 'Pola A tidak mengirim varian CoA.');
+        $this->assertSame([], $report['meta']['warnings']);
+        $this->assertSame(1_200, $report['totals'][$tenantApplication->id]['revenue']);
+    }
+
+    public function test_income_statement_normalizes_akubumdes_sections_and_summary(): void
+    {
+        $tenantApplication = TenantApplication::factory()->create(['instance_url' => 'https://akubumdes.test']);
+        $service = app(SubsidiaryReportService::class);
+
+        Http::fake([
+            'https://akubumdes.test/api/v1/holding/reports/income-statement?*' => Http::response($this->sectionIncomeStatementPayload(), 200),
+        ]);
+
+        $report = $service->comparative(collect([$tenantApplication]), 'income_statement', 6, 2026);
+        $rows = array_column($report['rows'], null, 'key');
+
+        $this->assertSame('trading', $report['meta']['variant']);
+        $this->assertSame(
+            ['prior' => 0.0, 'current' => 400.0, 'ytd' => 1_000.0],
+            $rows['4.1.01.01||Penjualan']['values'][$tenantApplication->id],
+        );
+        $this->assertSame(
+            ['prior' => 0.0, 'current' => 0.0, 'ytd' => 250.0],
+            $rows['||Laba Setelah Pajak']['values'][$tenantApplication->id],
+        );
+        $this->assertSame(
+            250.0,
+            $report['totals'][$tenantApplication->id]['laba_rugi_normalized_after_tax'],
+            'Total laba rugi hasil normalisasi harus skalar agar pengekspor lama tetap terbaca.',
+        );
+        $this->assertSame(1_200, $report['totals'][$tenantApplication->id]['revenue'], 'Total warisan sumber tidak boleh hilang.');
+    }
+
+    public function test_income_statement_matches_two_different_source_shapes_on_one_row(): void
+    {
+        $tenant = Tenant::factory()->create();
+        $sidbm = TenantApplication::factory()->create(['tenant_id' => $tenant->id, 'instance_url' => 'https://sidbm.test']);
+        $akubumdes = TenantApplication::factory()->create(['tenant_id' => $tenant->id, 'instance_url' => 'https://akubumdes.test']);
+        $service = app(SubsidiaryReportService::class);
+
+        Http::fake([
+            'https://sidbm.test/api/v1/holding/reports/income-statement?*' => Http::response($this->groupIncomeStatementPayload(), 200),
+            'https://akubumdes.test/api/v1/holding/reports/income-statement?*' => Http::response($this->sectionIncomeStatementPayload(), 200),
+        ]);
+
+        $report = $service->comparative(collect([$sidbm, $akubumdes]), 'income_statement', 6, 2026);
+        $rows = array_column($report['rows'], null, 'key');
+
+        $this->assertSame(
+            ['prior' => 100.0, 'current' => 250.0, 'ytd' => 1_000.0],
+            $rows['4.1.01.01||Penjualan']['values'][$sidbm->id],
+        );
+        $this->assertSame(
+            ['prior' => 0.0, 'current' => 400.0, 'ytd' => 1_000.0],
+            $rows['4.1.01.01||Penjualan']['values'][$akubumdes->id],
+            'Kode dan nama akun yang sama harus bertemu pada satu baris meskipun bentuk sumber berbeda.',
+        );
+        $closing = $rows['||Laba Setelah Pajak']['values'];
+        $this->assertSame(250.0, $closing[$akubumdes->id]['ytd']);
+        $this->assertNull($closing[$sidbm->id], 'Sumber tanpa summary tidak boleh mengarang baris penutup.');
+    }
+
+    public function test_income_statement_refetches_with_force_and_keeps_normalized_rows(): void
+    {
+        $tenantApplication = TenantApplication::factory()->create(['instance_url' => 'https://sidbm.test']);
+        $service = app(SubsidiaryReportService::class);
+
+        Http::fake([
+            'https://sidbm.test/api/v1/holding/reports/income-statement?*' => Http::response($this->groupIncomeStatementPayload(), 200),
+        ]);
+
+        $first = $service->comparative(collect([$tenantApplication]), 'income_statement', 6, 2026, false);
+        $second = $service->comparative(collect([$tenantApplication]), 'income_statement', 6, 2026, true);
+
+        Http::assertSentCount(2);
+        $this->assertSame($first['rows'], $second['rows']);
+        $this->assertSame(1, ReportCache::query()->where('report_type', 'income_statement')->count());
+    }
+
+    public function test_non_periodic_reports_keep_single_scalar_values(): void
+    {
+        $tenantApplication = TenantApplication::factory()->create(['instance_url' => 'https://sidbm.test']);
+        $service = app(SubsidiaryReportService::class);
+
+        Http::fake([
+            'https://sidbm.test/api/v1/holding/reports/cash-flow?*' => Http::response($this->cashFlowPayload(), 200),
+        ]);
+
+        $report = $service->comparative(collect([$tenantApplication]), 'cash_flow', 6, 2026);
+        $rows = array_column($report['rows'], null, 'key');
+
+        $this->assertSame(610_000, $rows['1||OPERASI']['values'][$tenantApplication->id]);
+        $this->assertNull($report['meta']['variant']);
+    }
+
+    public function test_tenant_can_export_income_statement_csv_with_period_columns(): void
+    {
+        $tenant = Tenant::factory()->create();
+        $user = User::factory()->tenantOwner()->for($tenant)->create();
+        $sidbm = TenantApplication::factory()->create(['tenant_id' => $tenant->id, 'instance_url' => 'https://sidbm.test']);
+        $akubumdes = TenantApplication::factory()->create(['tenant_id' => $tenant->id, 'instance_url' => 'https://akubumdes.test']);
+
+        Http::fake([
+            'https://sidbm.test/api/v1/holding/reports/income-statement?*' => Http::response($this->groupIncomeStatementPayload(), 200),
+            'https://akubumdes.test/api/v1/holding/reports/income-statement?*' => Http::response($this->sectionIncomeStatementPayload(), 200),
+        ]);
+
+        $response = $this->actingAs($user)->get(route('tenant.reports.export.csv', [
+            'apps' => [$sidbm->id, $akubumdes->id], 'type' => 'income_statement', 'year' => 2026, 'month' => 6,
+        ]));
+
+        $response->assertOk();
+        $this->assertStringContainsString('text/csv', $response->headers->get('content-type'));
+        $content = $response->streamedContent();
+
+        $this->assertStringNotContainsString('Server Error', $content);
+        foreach ([$sidbm->id, $akubumdes->id] as $applicationId) {
+            $this->assertStringContainsString('"'.$applicationId.' s.d lalu"', $content);
+            $this->assertStringContainsString('"'.$applicationId.' periode ini"', $content);
+            $this->assertStringContainsString('"'.$applicationId.' s.d sekarang"', $content);
+        }
+
+        // Pola A (grup hierarkis): Penjualan prior 100 / current 250 / ytd 1.000 pada kolomnya masing-masing.
+        $this->assertStringContainsString('4.1.01.01;Penjualan;100,00;250,00;1.000,00;0,00;400,00;1.000,00', $content);
+        // Pola B (section Akubumdes): Beban Operasional ytd 175 dan baris penutup hasil normalisasi ikut terbawa.
+        $this->assertStringContainsString('175,00', $content);
+        $this->assertStringContainsString('775,00', $content);
+        // Total warisan sumber (skalar) masuk ke kolom `s.d sekarang` milik aplikasinya, rata dengan header.
+        $this->assertStringContainsString('TOTAL;"'.$sidbm->id.' revenue";;;1.200,00;;;'."\n", $content);
+        $this->assertStringContainsString('TOTAL;"'.$akubumdes->id.' laba_rugi_normalized_after_tax";;;;;;250,00'."\n", $content);
+    }
+
+    public function test_tenant_income_statement_pdf_export_contains_numbers(): void
+    {
+        $tenant = Tenant::factory()->create();
+        $user = User::factory()->tenantOwner()->for($tenant)->create();
+        $sidbm = TenantApplication::factory()->create(['tenant_id' => $tenant->id, 'instance_url' => 'https://sidbm.test']);
+        $akubumdes = TenantApplication::factory()->create(['tenant_id' => $tenant->id, 'instance_url' => 'https://akubumdes.test']);
+
+        Http::fake([
+            'https://sidbm.test/api/v1/holding/reports/income-statement?*' => Http::response($this->groupIncomeStatementPayload(), 200),
+            'https://akubumdes.test/api/v1/holding/reports/income-statement?*' => Http::response($this->sectionIncomeStatementPayload(), 200),
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('tenant.reports.export.pdf', [
+                'apps' => [$sidbm->id, $akubumdes->id], 'type' => 'income_statement', 'year' => 2026, 'month' => 6,
+            ]))
+            ->assertOk()
+            ->assertHeader('content-type', 'application/pdf');
+
+        $applications = TenantApplication::query()->whereIn('id', [$sidbm->id, $akubumdes->id])->orderBy('id')->get();
+        $html = view('reports.comparative', [
+            'title' => 'Laba Rugi',
+            'period' => 'Juni 2026',
+            'applications' => $applications,
+            'report' => app(SubsidiaryReportService::class)->comparative($applications, 'income_statement', 6, 2026),
+        ])->render();
+
+        $this->assertStringContainsString('s.d lalu', $html);
+        $this->assertStringContainsString('s.d sekarang', $html);
+        $this->assertStringContainsString('1.000,00', $html);
+        $this->assertStringContainsString('periode ini', $html);
+    }
+
+    public function test_income_statement_export_without_triples_keeps_single_column_per_application(): void
+    {
+        $tenant = Tenant::factory()->create();
+        $user = User::factory()->tenantOwner()->for($tenant)->create();
+        $application = TenantApplication::factory()->create(['tenant_id' => $tenant->id]);
+
+        Http::fake(['*/api/v1/holding/reports/*' => Http::response($this->balanceSheetPayload(), 200)]);
+
+        $content = $this->actingAs($user)->get(route('tenant.reports.export.csv', [
+            'apps' => [$application->id], 'type' => 'balance_sheet', 'year' => 2026, 'month' => 6,
+        ]))->streamedContent();
+
+        $this->assertStringNotContainsString('s.d sekarang', $content);
+        $this->assertStringNotContainsString('s.d lalu', $content);
+        $this->assertStringContainsString('Kode;Nama;'.$application->id, $content);
+    }
+
+    public function test_consolidated_income_statement_sums_triples_per_column(): void
+    {
+        $tenant = Tenant::factory()->create();
+        $sidbm = TenantApplication::factory()->create(['tenant_id' => $tenant->id, 'instance_url' => 'https://sidbm.test']);
+        $akubumdes = TenantApplication::factory()->create(['tenant_id' => $tenant->id, 'instance_url' => 'https://akubumdes.test']);
+
+        Http::fake([
+            'https://sidbm.test/api/v1/holding/reports/income-statement?*' => Http::response($this->groupIncomeStatementPayload(), 200),
+            'https://akubumdes.test/api/v1/holding/reports/income-statement?*' => Http::response($this->sectionIncomeStatementPayload(), 200),
+        ]);
+
+        $consolidated = app(ReportBundleService::class)->consolidated(collect([$sidbm, $akubumdes]), 'income_statement', 6, 2026);
+        $rows = array_column($consolidated['rows'], 'value', 'key');
+
+        $this->assertSame(
+            ['prior' => 100, 'current' => 650, 'ytd' => 2_000],
+            $rows['4.1.01.01||Penjualan'],
+        );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function groupIncomeStatementPayload(): array
+    {
+        return [
+            'status' => 'success',
+            'data' => [
+                'groups' => [
+                    [
+                        'level' => 1,
+                        'code' => '4',
+                        'name' => 'PENDAPATAN',
+                        'prior' => 100.0,
+                        'current' => 250.0,
+                        'ytd' => 1_200.0,
+                        'children' => [
+                            [
+                                'level' => 2,
+                                'code' => '4.1.01.01',
+                                'name' => 'Penjualan',
+                                'prior' => 100.0,
+                                'current' => 250.0,
+                                'ytd' => 1_000.0,
+                            ],
+                            [
+                                'level' => 2,
+                                'code' => '4.1.01.02',
+                                'name' => 'Diskon Penjualan',
+                                'prior' => 0.0,
+                                'current' => 0.0,
+                                'ytd' => 200.0,
+                            ],
+                        ],
+                    ],
+                ],
+                'totals' => ['revenue' => 1_200, 'net_income' => 1_200],
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function sectionIncomeStatementPayload(): array
+    {
+        return [
+            'status' => 'success',
+            'data' => [
+                'title' => 'Laporan Laba Rugi',
+                'coa_variant' => 'trading',
+                'sections' => [
+                    [
+                        'label' => 'Penjualan Bersih',
+                        'type' => 'revenue',
+                        'rows' => [
+                            ['code' => '4.1.01.01', 'name' => 'Penjualan', 'account_type' => 'revenue', 'level' => 4, 'prior' => 0.0, 'current' => 400.0, 'ytd' => 1_000.0],
+                            ['code' => '4.1.01.02', 'name' => 'Diskon Penjualan', 'account_type' => 'revenue', 'level' => 4, 'prior' => 0.0, 'current' => 0.0, 'ytd' => -50.0],
+                        ],
+                        'total' => 950.0,
+                        'current' => 0.0,
+                        'prior' => 0.0,
+                    ],
+                    [
+                        'label' => 'Beban Lainnya',
+                        'type' => 'expense',
+                        'rows' => [
+                            ['code' => '5.2.01.01', 'name' => 'Beban Operasional', 'account_type' => 'expense', 'level' => 4, 'prior' => 0.0, 'current' => 75.0, 'ytd' => 175.0],
+                        ],
+                        'total' => 175.0,
+                        'current' => 0.0,
+                        'prior' => 0.0,
+                    ],
+                    [
+                        'label' => 'Pajak',
+                        'type' => 'expense',
+                        'rows' => [
+                            ['code' => '7.4.01.01', 'name' => 'Pajak Badan', 'account_type' => 'expense', 'level' => 4, 'prior' => 0.0, 'current' => 10.0, 'ytd' => 25.0],
+                        ],
+                        'total' => 25.0,
+                        'current' => 0.0,
+                        'prior' => 0.0,
+                    ],
+                ],
+                'summary' => [
+                    'operating' => ['prior' => 0.0, 'current' => 0.0, 'ytd' => 775.0],
+                    'non_operating' => ['prior' => 0.0, 'current' => 0.0, 'ytd' => -175.0],
+                    'before_tax' => ['prior' => 0.0, 'current' => 0.0, 'ytd' => 275.0],
+                    'tax' => ['prior' => 0.0, 'current' => 0.0, 'ytd' => 25.0],
+                    'after_tax' => ['prior' => 0.0, 'current' => 0.0, 'ytd' => 250.0],
+                ],
+                'totals' => ['revenue' => 1_200, 'expenses' => 200, 'net_income' => 250],
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function cashFlowPayload(): array
+    {
+        return [
+            'status' => 'success',
+            'data' => [
+                'sections' => [
+                    ['code' => '1', 'name' => 'OPERASI', 'level' => 1, 'balance' => 610_000, 'children' => []],
+                ],
+                'totals' => ['cash_change' => 610_000],
+            ],
+        ];
     }
 
     private function balanceSheetPayload(): array
